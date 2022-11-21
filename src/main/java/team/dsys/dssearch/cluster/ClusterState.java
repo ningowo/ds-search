@@ -1,9 +1,11 @@
 package team.dsys.dssearch.cluster;
 
-import team.dsys.dssearch.cluster.routing.*;
-import team.dsys.dssearch.cluster.shard.*;
+import team.dsys.dssearch.routing.*;
+import team.dsys.dssearch.shard.*;
 
-// org.elasticsearch.cluster.ClusterState;
+/**
+ * 每个节点需要知道，怎么找到其他节点，和怎么找到其他分片(活着的)
+ */
 
 public class ClusterState {
 
@@ -15,7 +17,6 @@ public class ClusterState {
     // shard routing
     // es: ClusterState - routingNodes -
     // Map<String, RoutingNode> nodesToShards - (node, LinkedHashMap<ShardId, ShardRouting> shards)
-
     Shards shards;
 
 }
