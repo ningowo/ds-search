@@ -1,6 +1,4 @@
-package team.dsys.dssearch.cluster.shard;
-
-import org.elasticsearch.cluster.routing.ShardRouting;
+package team.dsys.dssearch.shard;
 
 import java.util.HashMap;
 

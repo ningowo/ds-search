@@ -2,9 +2,9 @@ package team.dsys.dssearch.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import team.dsys.dssearch.search.Doc;
-import team.dsys.dssearch.search.IndexService;
-import team.dsys.dssearch.cluster.shard.ShardService;
+import team.dsys.dssearch.common.SnowflakeIDGenerator;
+import team.dsys.dssearch.model.Doc;
+import team.dsys.dssearch.shard.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,25 +14,41 @@ import java.util.List;
 public class SearchService {
 
     @Autowired
-    ShardService shardService;
+    ShardServiceImpl shardServiceImpl;
 
     @Autowired
-    IndexService indexService;
+    DocService docService;
 
     public List<Doc> search(String query) {
         // 暂时跳过根据关联度获取docid的步骤，直接new docIds
-        ArrayList<Integer> docIds = new ArrayList<Integer>();
+        ArrayList<Long> docIds = new ArrayList<>();
 
         List<Doc> docs = fetchDocs(docIds);
 
         return docs;
     }
 
-    // Sorted docIds
-    private List<Doc> fetchDocs(List<Integer> docIds) {
-        HashMap<Integer, List<Integer>> shard = shardService.shard(docIds);
+    // first send docs to primary shards' nodes, and the primary shard will replicate logs to nodes that replicas exist.
+    public boolean store(List<Doc> docs) {
+        // generate id
+        SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
 
-        List<Doc> docs = indexService.batchGetDocs(shard);
+        for (Doc doc : docs) {
+            doc.set_id(generator.generate());
+        }
+
+        // primary shard's node id
+        HashMap<Integer, List<Doc>> nodeToDocs = shardServiceImpl.shardDocs(docs);
+        boolean store = docService.store(nodeToDocs);
+
+        return false;
+    }
+
+    // Sorted docIds
+    private List<Doc> fetchDocs(List<Long> docIds) {
+        HashMap<Integer, List<Long>> nodeToDocIds = shardServiceImpl.shardDocIds(docIds);
+
+        List<Doc> docs = docService.batchGetDocs(nodeToDocIds);
 
         return docs;
     }

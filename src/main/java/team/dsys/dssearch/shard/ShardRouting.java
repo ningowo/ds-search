@@ -1,11 +1,9 @@
-package team.dsys.dssearch.cluster.shard;
+package team.dsys.dssearch.shard;
 
 public class ShardRouting {
 
     int shardId;
 
     int currentNodeId;
-
-    boolean primary;
 
 }
