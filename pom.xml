@@ -20,6 +20,14 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+
     <dependencies>
 
         <!-- https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
@@ -69,7 +77,6 @@
             <version>5.3.12</version>
         </dependency>
 
-
         <!-- log -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -90,6 +97,21 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.83</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.typesafe/config -->
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.MicroRaft</groupId>
+            <artifactId>MicroRaft</artifactId>
+            <version>v0.1</version>
+        </dependency>
+
+
 
     </dependencies>
 
