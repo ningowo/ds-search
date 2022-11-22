@@ -1,0 +1,202 @@
+syntax = "proto3";
+
+package team.dsys.dssearch.cluster.proto;
+
+option java_multiple_files = true;
+
+// This file contains the Protobufs definitions for MicroRaft's model and
+// network abstractions.
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/groupop/UpdateRaftGroupMembersOp.java
+message UpdateRaftGroupMembersOpProto {
+  //original data type: Collection<RaftEndpoint>, in our design, raftendpoint represented by a string
+  repeated string member = 1;
+  repeated string votingMember = 2;
+  string endpoint = 3;
+
+  //Microraft defined
+  // https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/MembershipChangeMode.java
+  enum MembershipChangeModeProto {
+    ADD_LEARNER = 0;
+    ADD_OR_PROMOTE_TO_FOLLOWER = 1;
+    REMOVE_MEMBER = 2;
+  }
+
+  MembershipChangeModeProto mode = 4;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/statemachine/StateMachine.java#L120
+message StartNewTermOpProto {
+}
+
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/log/LogEntry.java
+message LogEntryProto {
+  int32 term = 1;
+  int64 index = 2;
+  oneof operation {
+    UpdateRaftGroupMembersOpProto updateRaftGroupMembersOp = 3;
+    StartNewTermOpProto startNewTermOp = 4;
+    //todo:update shard / node status
+  }
+}
+
+message Operation {
+  //todo:update shard / node status
+}
+
+
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/log/RaftGroupMembersView.java
+message RaftGroupMembersViewProto {
+  int64 logIndex = 1;
+  repeated string member = 2;
+  repeated string votingMember = 3;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/log/SnapshotChunk.java
+message SnapshotChunk {
+  int32 term = 1;
+  int64 index = 2;
+  Operation operation = 3;
+  int32 snapshotChunkIndex = 4;
+  int32 snapshotChunkCount = 5;
+  RaftGroupMembersViewProto groupMembersView = 6;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/log/SnapshotEntry.java
+message SnapshotEntryProto {
+  int32 term = 1;
+  int64 index = 2;
+  repeated SnapshotChunk snapshotChunk = 3;
+  RaftGroupMembersViewProto groupMembersView = 4;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/VoteRequest.java
+message VoteRequestProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int32 lastLogTerm = 4;
+  int64 lastLogIndex = 5;
+  bool sticky = 6;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/VoteResponse.java
+message VoteResponseProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  bool granted = 4;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/AppendEntriesRequest.java
+message AppendEntriesRequestProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int32 prevLogTerm = 4;
+  int64 prevLogIndex = 5;
+  int64 commitIndex = 6;
+  repeated LogEntryProto entry = 7;
+  int64 querySequenceNumber = 8;
+  int64 flowControlSequenceNumber = 9;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/AppendEntriesSuccessResponse.java
+message AppendEntriesSuccessResponseProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int64 lastLogIndex = 4;
+  int64 querySequenceNumber = 5;
+  int64 flowControlSequenceNumber = 6;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/AppendEntriesFailureResponse.java
+message AppendEntriesFailureResponseProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int64 expectedNextIndex = 4;
+  int64 querySequenceNumber = 5;
+  int64 flowControlSequenceNumber = 6;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/InstallSnapshotRequest.java
+message InstallSnapshotRequestProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  bool senderLeader = 4;
+  int32 snapshotTerm = 5;
+  int64 snapshotIndex = 6;
+  int32 totalSnapshotChunkCount = 7;
+  SnapshotChunk snapshotChunk = 8;
+  repeated string snapshottedMember = 9;
+  RaftGroupMembersViewProto groupMembersView = 10;
+  int64 querySequenceNumber = 12;
+  int64 flowControlSequenceNumber = 13;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/InstallSnapshotResponse.java
+message InstallSnapshotResponseProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int64 snapshotIndex = 4;
+  int32 requestedSnapshotChunkIndex = 5;
+  int64 querySequenceNumber = 6;
+  int64 flowControlSequenceNumber = 7;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/PreVoteRequest.java
+message PreVoteRequestProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int32 lastLogTerm = 4;
+  int64 lastLogIndex = 5;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/PreVoteResponse.java
+message PreVoteResponseProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  bool granted = 4;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/TriggerLeaderElectionRequest.java
+message TriggerLeaderElectionRequestProto {
+  string groupId = 1;
+  string sender = 2;
+  int32 term = 3;
+  int32 lastLogTerm = 4;
+  int64 lastLogIndex = 5;
+}
+
+// https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/model/message/RaftMessage.java
+message RaftMessageRequest {
+  oneof message {
+    VoteRequestProto voteRequest = 1;
+    VoteResponseProto voteResponse = 2;
+    AppendEntriesRequestProto appendEntriesRequest = 3;
+    AppendEntriesSuccessResponseProto appendEntriesSuccessResponse = 4;
+    AppendEntriesFailureResponseProto appendEntriesFailureResponse = 5;
+    InstallSnapshotRequestProto installSnapshotRequest = 6;
+    InstallSnapshotResponseProto installSnapshotResponse = 7;
+    PreVoteRequestProto preVoteRequest = 8;
+    PreVoteResponseProto preVoteResponse = 9;
+    TriggerLeaderElectionRequestProto triggerLeaderElectionRequest = 10;
+  }
+}
+
+message RaftMessageResponse {
+}
+
+// Service definition for the Raft communication between cluster servers.
+service RaftCommunicationService {
+  rpc handleRaftMessage (stream RaftMessageRequest) returns (RaftMessageResponse) {
+  }
+}
