@@ -14,7 +14,7 @@ public class RaftRpcServiceImpl implements RaftRpcService{
 
     private final RaftEndpoint localEndpoint;
     private final Map<RaftEndpoint, String> nodeAddresses;
-    private final Map<RaftEndpoint, grpcStub> stubs = new ConcurrentHashMap<RaftEndpoint, grpcStub>();
+    //private final Map<RaftEndpoint, grpcStub> stubs = new ConcurrentHashMap<RaftEndpoint, grpcStub>();
 
     public RaftRpcServiceImpl(RaftEndpoint localEndpoint, Map<RaftEndpoint, String> nodeAddresses) {
         this.localEndpoint = localEndpoint;
@@ -27,25 +27,11 @@ public class RaftRpcServiceImpl implements RaftRpcService{
         //check if target endpoint is valid
         if (localEndpoint.equals(target)) {
             LOGGER.error("{} cannot send message to itself...", localEndpoint.getId());
-            return null;
         }
 
         if (!nodeAddresses.containsKey(target)) {
             LOGGER.error("Unknown target endpoint: {}", target);
-            return null;
         }
-
-        //get or create stub
-        grpcStub stub = stubs.get(target);
-        if (grpcStub != null) {
-
-        }
-
-        return
-
-
-
-
 
 
     }
