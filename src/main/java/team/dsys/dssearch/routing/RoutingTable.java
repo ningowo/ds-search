@@ -1,5 +1,7 @@
 package team.dsys.dssearch.routing;
 
+import team.dsys.dssearch.cluster.Node;
+
 import java.util.HashMap;
 
 /**
@@ -7,6 +9,10 @@ import java.util.HashMap;
  */
 
 public class RoutingTable {
+
+    public HashMap<NodeRouting, Node> getNodeAddrs() {
+        return nodeAddrs;
+    }
 
     HashMap<NodeRouting, team.dsys.dssearch.cluster.Node> nodeAddrs;
 

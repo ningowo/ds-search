@@ -38,6 +38,7 @@ public class SearchService {
         }
 
         // primary shard's node id
+        //Map node to docs eg node 1 (doc 1, doc 2, doc3..)
         HashMap<Integer, List<Doc>> nodeToDocs = shardServiceImpl.shardDocs(docs);
         boolean store = docService.store(nodeToDocs);
 
