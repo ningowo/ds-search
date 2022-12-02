@@ -8,6 +8,12 @@ service ShardService {
 
     GetResponse batchGet(1: list<string> docIds)
 
+    bool PREPARE(1: i32 docId, 2:string doc),
+
+    bool COMMIT(1: i32 docId, 2:string doc),
+
+    bool ABORT(1: i32 docId, 2:string doc),
+
 }
 
 struct CommonRequest {
