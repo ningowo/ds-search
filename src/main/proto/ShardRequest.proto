@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package proto;
+
+option java_package = "cluster.proto";
+
+option java_multiple_files = true;
+
+message Val {
+  oneof val {
+    string str = 1;
+    int64 num = 2;
+    bytes byteArray = 3;
+  }
+}
+
+message PutRequest {
+  string key = 1;
+  Val val = 2;
+  bool putIfAbsent = 3;
+}
+
+message PutResult {
+  Val oldVal = 1;
+}
+
+message GetRequest {
+  string key = 1;
+  int64 minCommitIndex = 2;
+}
+
+message GetResult {
+  Val val = 1;
+}
+
+message RemoveRequest {
+  string key = 1;
+  Val val = 2;
+}
+
+message RemoveResult {
+  bool success = 1;
+  Val oldVal = 2;
+}
+
+message ShardResponse {
+  int64 commitIndex = 1;
+  oneof result {
+    PutResult putResult = 2;
+    GetResult getResult = 3;
+    RemoveResult removeResult = 5;
+  };
+}
+
+service ShardRequestHandler {
+  rpc put (PutRequest) returns (ShardResponse);
+  rpc get (GetRequest) returns (ShardResponse);
+  rpc remove (RemoveRequest) returns (ShardResponse);
+}
