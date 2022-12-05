@@ -1,9 +1,10 @@
 package team.dsys.dssearch.service;
 
+import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import team.dsys.dssearch.common.SnowflakeIDGenerator;
-import team.dsys.dssearch.model.Doc;
+import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.shard.*;
 
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public class SearchService {
     }
 
     // first send docs to primary shards' nodes, and the primary shard will replicate logs to nodes that replicas exist.
-    public boolean store(List<Doc> docs) {
+    public boolean store(List<Doc> docs) throws TException {
         // generate id
         SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
 

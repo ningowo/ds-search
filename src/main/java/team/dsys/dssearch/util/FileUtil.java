@@ -1,6 +1,6 @@
 package team.dsys.dssearch.util;
 
-import store.service.rpc.Transaction;
+import team.dsys.dssearch.rpc.Transaction;
 
 import java.io.*;
 import java.util.HashMap;
@@ -77,7 +77,4 @@ public class FileUtil {
             e.printStackTrace();
         }
     }
-
-
-
 }
