@@ -1,7 +1,9 @@
 package team.dsys.dssearch.cluster;
 
+import org.springframework.stereotype.Service;
 import team.dsys.dssearch.shard.*;
 
+@Service
 public class ClusterServiceImpl implements ClusterService {
 
     private static Shards shardsOnCurrentNode;

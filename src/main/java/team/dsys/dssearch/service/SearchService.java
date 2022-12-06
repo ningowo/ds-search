@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import team.dsys.dssearch.common.SnowflakeIDGenerator;
 import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.shard.*;
+import team.dsys.dssearch.vo.DocVO;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class SearchService {
@@ -19,6 +21,8 @@ public class SearchService {
 
     @Autowired
     DocService docService;
+
+    SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
 
     public List<Doc> search(String query) {
         // 暂时跳过根据关联度获取docid的步骤，直接new docIds
@@ -30,9 +34,9 @@ public class SearchService {
     }
 
     // first send docs to primary shards' nodes, and the primary shard will replicate logs to nodes that replicas exist.
-    public boolean store(List<Doc> docs) throws TException {
-        // generate id
-        SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
+    public boolean store(List<DocVO> docVOLists) throws TException {
+        List<Doc> docs = docVOLists.stream().
+                map(docVO -> new Doc(docVO.index, docVO.id, docVO.content)).collect(Collectors.toList());
 
         for (Doc doc : docs) {
             doc.set_id(generator.generate());

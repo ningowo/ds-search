@@ -1,20 +1,23 @@
 package team.dsys.dssearch.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import team.dsys.dssearch.model.Doc;
+import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.service.SearchService;
-import team.dsys.dssearch.vo.*;
+import team.dsys.dssearch.vo.DocVO;
+import team.dsys.dssearch.vo.SearchResponse;
 
 import java.util.List;
 
 /**
  * clients send requests via HTTP
+ * test: http://localhost:8081/search?query=a
  */
 
 @Slf4j
-@RestController("/search")
+@RestController()
 public class SearchController {
 
     @Autowired
@@ -38,7 +41,7 @@ public class SearchController {
     }
 
     @PutMapping("/store")
-    SearchResponse store(List<Doc> docs) {
+    SearchResponse store(@RequestBody List<DocVO> docs) throws TException {
         searchService.store(docs);
         return new SearchResponse(1, "ok", null);
     }

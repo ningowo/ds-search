@@ -2,6 +2,7 @@ package team.dsys.dssearch.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
+import org.springframework.stereotype.Service;
 import team.dsys.dssearch.cluster.ClusterServiceImpl;
 import team.dsys.dssearch.routing.*;
 import team.dsys.dssearch.rpc.Doc;
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 
 @Slf4j
+@Service
 public class DocService {
 
     private static int RETRY_CNT = 2;

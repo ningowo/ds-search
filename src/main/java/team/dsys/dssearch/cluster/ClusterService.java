@@ -5,7 +5,6 @@ import team.dsys.dssearch.shard.*;
 /**
  * cluster nodes communicates using RPC
  */
-
 public interface ClusterService {
 
     // todo

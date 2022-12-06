@@ -3,7 +3,7 @@ package team.dsys.dssearch.vo;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import team.dsys.dssearch.model.Doc;
+import team.dsys.dssearch.rpc.Doc;
 
 import java.util.List;
 

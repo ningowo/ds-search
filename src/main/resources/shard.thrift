@@ -1,4 +1,4 @@
-namespace java teams.dsys.dssearch.rpc
+namespace java team.dsys.dssearch.rpc
 
 service ShardService {
 
@@ -36,7 +36,7 @@ struct CommonResponse {
 }
 
 struct Doc {
-    1: string _index,
+    1: i32 _index,
     2: i32 _id,
     3: string content
 }
