@@ -7,4 +7,17 @@ public class Shard {
     boolean isPrimary;
 
     ShardRouting routing;
+
+    public int getShardId() {
+        return shardId;
+    }
+
+    public boolean isPrimary() {
+        return isPrimary;
+    }
+
+    public ShardRouting getRouting() {
+        return routing;
+    }
+
 }

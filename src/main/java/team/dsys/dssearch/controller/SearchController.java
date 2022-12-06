@@ -42,5 +42,4 @@ public class SearchController {
         searchService.store(docs);
         return new SearchResponse(1, "ok", null);
     }
-
 }

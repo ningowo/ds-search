@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
 import team.dsys.dssearch.cluster.ClusterServiceImpl;
 import team.dsys.dssearch.routing.*;
-import team.dsys.dssearch.model.Doc;
+import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.rpc.GetResponse;
 import team.dsys.dssearch.rpc.ShardService;
 import team.dsys.dssearch.util.JsonUtil;
@@ -12,6 +12,7 @@ import team.dsys.dssearch.util.TransportUtil;
 import team.dsys.dssearch.shard.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -61,7 +62,9 @@ public class DocService {
         try {
             GetResponse resp = client.get(docId);
             if (resp.success) {
-                return JsonUtil.jsonToObject(resp.doc, Doc.class);
+//                return JsonUtil.jsonToObject(resp.doc, Doc.class);
+                return null;
+
             }
         } catch (TException e) {
             log.info("Get request toward {} failed: key={}", nodeId, docId);
@@ -77,12 +80,15 @@ public class DocService {
         return null;
     }
 
-    public boolean store(HashMap<Integer, List<Doc>> nodeIdToDocs) {
+    public boolean store(HashMap<Integer, List<Doc>> nodeIdToDocs) throws TException {
         // todo
         Shards shardsOnCurrentNode = ClusterServiceImpl.getShardsOnCurrentNode();
         boolean hasPrimary = false;
-        for (Shard shard: shardsOnCurrentNode.) {
-            shard
+        for (Shard shard: shardsOnCurrentNode.idToShards.values()) {
+            if (shard.isPrimary()) {
+                ShardServiceImpl shardServiceHandler = new ShardServiceImpl(new ArrayList<>(Arrays.asList(6601, 6602, 6603, 6604)));
+                shardServiceHandler.store((List)nodeIdToDocs.values());
+            }
         }
 
         return false;
