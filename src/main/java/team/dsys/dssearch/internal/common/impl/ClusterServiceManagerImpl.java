@@ -234,7 +234,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
 
     public static void main(String[] args) throws TimeoutException {
-        String p = "/Users/chensiying/cs61b/search-engine-project/src/main/java/team/dsys/dssearch/internal/common/config/cluster.conf";
+        String p = "/Users/chensiying/cs61b/Distributed-Systems/Final Project/ds-search/src/main/resources/cluster.conf";
         ClusterServiceManagerImpl manager = new ClusterServiceManagerImpl(1, p);
         System.out.println(manager.getClusterReport());
 
