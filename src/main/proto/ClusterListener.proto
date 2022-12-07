@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package proto;
+
+option java_package = "cluster.external.listener.proto";
+
+option java_multiple_files = true;
+
+message ClusterEndpointsInfo {
+  string clusterId = 1;
+  int64 endpointsCommitIndex = 2;
+  map<string, string> endpoints = 3;
+  string leaderId = 4;
+  int32 term = 5;
+}
+
+message ClusterEndpointsRequest {
+  string clientId = 1;
+}
+
+message ClusterEndpointsResponse {
+  ClusterEndpointsInfo endpointsInfo = 1;
+}
+
+service ClusterListenService {
+  rpc listenClusterEndpoints (ClusterEndpointsRequest) returns (stream ClusterEndpointsResponse);
+}
