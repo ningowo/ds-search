@@ -1,6 +1,5 @@
 package team.dsys.dssearch.cluster.module;
 
-
 import cluster.external.shard.proto.ShardRequestHandlerGrpc;
 import cluster.internal.management.proto.ManagementRequestHandlerGrpc;
 import cluster.internal.raft.proto.RaftCommunicationServiceGrpc;
@@ -19,12 +18,10 @@ import team.dsys.dssearch.cluster.raft.supplier.RaftNodeSupplier;
 import team.dsys.dssearch.cluster.rpc.*;
 import team.dsys.dssearch.cluster.rpc.impl.ClusterHealthManagementHandler;
 import team.dsys.dssearch.cluster.rpc.impl.ShardRequestHandler;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-
 import static com.google.inject.name.Names.named;
 
 /**
