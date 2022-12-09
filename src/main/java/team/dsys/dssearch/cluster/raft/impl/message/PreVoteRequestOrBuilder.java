@@ -6,7 +6,6 @@ import io.microraft.RaftEndpoint;
 import io.microraft.model.message.PreVoteRequest;
 import io.microraft.model.message.PreVoteRequest.PreVoteRequestBuilder;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 
 public class PreVoteRequestOrBuilder implements PreVoteRequest, PreVoteRequestBuilder, RaftMessageRequestAware {
