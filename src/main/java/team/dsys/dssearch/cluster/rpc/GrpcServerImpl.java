@@ -15,14 +15,12 @@ import team.dsys.dssearch.cluster.exception.ClusterServerException;
 import team.dsys.dssearch.cluster.raft.report.RaftNodeReportSupplier;
 import team.dsys.dssearch.cluster.rpc.impl.ClusterHealthManagementHandler;
 import team.dsys.dssearch.cluster.rpc.impl.ShardRequestHandler;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.IOException;
-
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.CONFIG_KEY;
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.NODE_ENDPOINT_KEY;
 
