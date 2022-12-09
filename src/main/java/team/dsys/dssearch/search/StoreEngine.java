@@ -46,7 +46,7 @@ public class StoreEngine {
         ArrayList<Document> docList = new ArrayList<>();
         for (Doc newDoc : newDocs) {
             Document doc = new Document();
-            doc.add(new StringField("id", String.valueOf(newDoc.get_id()), Field.Store.YES));
+            doc.add(new StringField("id", String.valueOf(newDoc.getId()), Field.Store.YES));
             doc.add(new TextField("content", newDoc.getContent(), Field.Store.YES));
             docList.add(doc);
         }

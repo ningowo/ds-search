@@ -1,11 +1,13 @@
 package team.dsys.dssearch.service;
 
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import team.dsys.dssearch.cluster.ClusterService;
 import team.dsys.dssearch.rpc.*;
+import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.FileUtil;
 
 import java.sql.Timestamp;
@@ -13,22 +15,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 public class ShardServiceImpl implements ShardService.Iface {
-    //only for test
-//    private final List<Integer> serverPorts;
 
-//    public ShardServiceImpl(List<Integer> ports) {
-//        serverPorts = ports;
-//    }
+    @Autowired
+    StoreEngine storeEngine;
 
-    // 当这个是本地的存储引擎
-    // key - docId, val - doc
-    private final ConcurrentHashMap<Integer, Doc> kvMap = new ConcurrentHashMap<>();
     private static final String LOG_PATH ="./logs/";
+
     private static final AtomicInteger transIdCounter = new AtomicInteger(1000);
 
     @Value("${cluster.main-shard-num}")
@@ -57,7 +54,7 @@ public class ShardServiceImpl implements ShardService.Iface {
         HashMap<Integer, List<Doc>> shardToIdsMap = new HashMap<>();
 
         for (Doc doc : docList){
-            long shardId = doc.get_id() % mainShardNum;
+            long shardId = doc.getId() % mainShardNum;
             Integer nodeID = clusterService.getNodeByShardId(shardId);
             shardToIdsMap.computeIfAbsent(nodeID, k -> new ArrayList<>()).add(doc);
         }
@@ -65,6 +62,18 @@ public class ShardServiceImpl implements ShardService.Iface {
         return shardToIdsMap;
     }
 
+    @Override
+    public List<ScoreAndDocId> queryTopN(String query, int n, int shardId) {
+        List<ScoreDoc> scoreDocs = storeEngine.queryTopN(query, n, shardId);
+        return scoreDocs.stream()
+                .map(scoreDoc -> new ScoreAndDocId(scoreDoc.score, scoreDoc.doc))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Doc> getDocList(List<Integer> sortedLocalDocIds, int shardId) {
+        return storeEngine.getDocList(sortedLocalDocIds, shardId);
+    }
 
     // todo
     @Override
@@ -74,10 +83,11 @@ public class ShardServiceImpl implements ShardService.Iface {
 
     @Override
     public GetResponse get(int key) throws TException {
-        if (kvMap.containsKey(key)) {
-            return new GetResponse(true, key, kvMap.get(key));
-        }
-        return new GetResponse(false, key, null);
+//        if (kvMap.containsKey(key)) {
+//            return new GetResponse(true, key, kvMap.get(key));
+//        }
+//        return new GetResponse(false, key, null);
+        return null;
     }
 
     @Override
@@ -176,8 +186,8 @@ public class ShardServiceImpl implements ShardService.Iface {
     @Override
     public boolean commit(Transaction trans) {
         Timestamp ts = new Timestamp(System.currentTimeMillis());
-        kvMap.put(trans.key, trans.val);
-        FileUtil.removeTransFromMap(LOG_PATH, ts.toString(), trans);
+//        kvMap.put(trans.key, trans.val);
+//        FileUtil.removeTransFromMap(LOG_PATH, ts.toString(), trans);
         return true;
     }
 
@@ -190,7 +200,7 @@ public class ShardServiceImpl implements ShardService.Iface {
     public boolean remove(Transaction trans) {
         Timestamp ts = new Timestamp(System.currentTimeMillis());
         FileUtil.removeTransFromMap(LOG_PATH, ts.toString(), trans);
-        kvMap.remove(trans.key);
+//        kvMap.remove(trans.key);
         return true;
     }
 //

@@ -1,18 +1,24 @@
 package team.dsys.dssearch.service;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransportException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import team.dsys.dssearch.config.SearchConfig;
 import team.dsys.dssearch.rpc.Doc;
+import team.dsys.dssearch.rpc.ShardService;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.SnowflakeIDGenerator;
 import team.dsys.dssearch.vo.DocVO;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,46 +39,85 @@ public class SearchService {
 
     SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
 
-    public List<Doc> search(String query) {
-        // 获取docid并排序
-        // for all shards
-//        List<Shard> nodeList;
-//        for (Node node : nodeList) {
-//
-//            List<ScoreDoc> resultDocIds = storeEngine.queryTopN(query, 2, 1);
-//            log.info("Get total {} docs by search all nodes", resultDocIds.size());
-//            Pair<Integer, ScoreDoc> pair = new Pair<>(shardId, ScoreDoc);
-//        }
-//
-//
-//        List<ScoreDoc> collect = resultDocIds.stream().sorted((o1, o2) -> (int) (o1.score - o2.score)).collect(Collectors.toList());
-//        for (ScoreDoc scoreDoc : collect) {
-//            System.out.println(scoreDoc);
-//        }
-//
-//        // score doc
-//        List<Integer> topList = collect.stream().map(scoreDoc -> scoreDoc.doc).collect(Collectors.toList());
-//        List<Doc> topDocList = storeEngine.getDocList(topList, shardId);
-//        log.info("");
-//        log.info("Get docs by id:");
-//        for (Doc doc : topDocList) {
-//            System.out.println(doc);
-//        }
+    @SneakyThrows
+    public List<Doc> search(String query, int size) {
+        // 1. search all shards for available doc ids
+        List<Pair<Integer, ScoreDoc>> shardIdAndScoreDocList = new ArrayList<>();
 
-        // remove Lucene dirs
-        File dir = new File("./lucene/");
-        for (File file : dir.listFiles()) {
-            if (file.isDirectory()) {
-                for (File listFile : file.listFiles()) {
-                    listFile.delete();
-                }
+        HashMap<Integer, String> shardIdToNodeAddrMap = new HashMap<>();
+        shardIdToNodeAddrMap.put(1, "xxx");
+        for (Map.Entry<Integer, String> entry : shardIdToNodeAddrMap.entrySet()) {
+            int shardId = entry.getKey();
+            String nodeAddr = entry.getValue();
+
+            // get doc ids and scores on all shards
+            List<ScoreDoc> resultDocIds = storeEngine.queryTopN(query, 2, 1);
+//            ShardService.Client client = getClient(nodeAddr);
+//            if (client == null) {
+//                continue;
+//            }
+//            client.queryTopN(query, size, shardId);
+
+            for (ScoreDoc doc : resultDocIds) {
+                Pair<Integer, ScoreDoc> pair = Pair.of(shardId, doc);
+                shardIdAndScoreDocList.add(pair);
             }
         }
-        log.info("Shard files deleted");
+        log.info("Get total {} docs by search all nodes", shardIdAndScoreDocList.size());
 
-//        return topDocList;
+        // 2. sort all doc ids, and get
+        List<Pair<Integer, ScoreDoc>> targetSidToDocIds = shardIdAndScoreDocList.stream()
+                .sorted((o1, o2) -> (int) (o1.getRight().score - o2.getRight().score))
+                .limit(size)
+                .collect(Collectors.toList());
 
-        return null;
+        // build RPC request parameter
+        LinkedHashMap<Integer, List<Integer>> targetSidToDocIdsMap = new LinkedHashMap<>();
+        for (Pair<Integer, ScoreDoc> pair : targetSidToDocIds) {
+            int shardId = pair.getLeft();
+            int doc = pair.getRight().doc;
+            targetSidToDocIdsMap.computeIfAbsent(shardId, k -> new ArrayList<>()).add(doc);
+        }
+
+        // get docs by doc ids
+        List<Doc> resultDocs = new ArrayList<>();
+        for (Map.Entry<Integer, List<Integer>> entry : targetSidToDocIdsMap.entrySet()) {
+            int shardId = entry.getKey();
+            List<Integer> docIdList = entry.getValue();
+
+            List<Doc> docList = storeEngine.getDocList(docIdList, shardId);
+            // String nodeAddr = cluster.xxx(shardId)
+//            ShardService.Client client = getClient(nodeAddr);
+//            if (client == null) {
+//                continue;
+//            }
+//            client.getDocList(docIdList, shardId);
+//
+            resultDocs.addAll(docList);
+        }
+
+        log.info("Get docs by id:");
+        for (Doc doc : resultDocs) {
+            log.info(doc.toString());
+        }
+
+        return resultDocs;
+    }
+
+    private ShardService.Client getClient(String nodeAddr) {
+        String[] s = nodeAddr.split(":");
+        String addr = s[0];
+        int port = Integer.parseInt(s[1]);
+        try {
+            TSocket transport  = new TSocket(addr, port);
+            transport.setTimeout(10 * 1000);  // 10 seconds timeout
+            transport.open();
+            TProtocol protocol = new TBinaryProtocol(transport);
+            return new ShardService.Client(protocol);
+        } catch (TTransportException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     // first send docs to primary shards' nodes, and the primary shard will replicate logs to nodes that replicas exist.
@@ -82,7 +127,7 @@ public class SearchService {
 
         // generate global unique doc id
         for (Doc doc : docs) {
-            doc.set_id(generator.generate());
+            doc.setId(generator.generate());
         }
 
         // 获取集群的状态

@@ -17,13 +17,14 @@ import java.util.List;
  */
 
 @Slf4j
-@RestController()
+@RestController
+@RequestMapping("/s")
 public class SearchController {
 
     @Autowired
     SearchService searchService;
 
-    @RequestMapping(value = "/search", method = RequestMethod.GET)
+    @GetMapping(value = "/search")
     SearchResponse search(String query) {
         if (query == null) {
             return new SearchResponse(-1, "Please enter your query!", null);
@@ -32,7 +33,7 @@ public class SearchController {
         log.info("Start searching：" + query);
         List<Doc> searchResult = null;
         try {
-            searchResult = searchService.search(query);
+            searchResult = searchService.search(query, 3);
         } catch (Exception e) {
             e.printStackTrace();
         }
