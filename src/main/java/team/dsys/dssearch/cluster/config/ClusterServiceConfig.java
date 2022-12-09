@@ -3,9 +3,7 @@ package team.dsys.dssearch.cluster.config;
 import com.typesafe.config.Config;
 import io.microraft.RaftConfig;
 import team.dsys.dssearch.cluster.exception.ClusterServerException;
-
 import javax.annotation.Nonnull;
-
 import static io.microraft.RaftConfig.DEFAULT_RAFT_CONFIG;
 import static java.util.Objects.requireNonNull;
 
