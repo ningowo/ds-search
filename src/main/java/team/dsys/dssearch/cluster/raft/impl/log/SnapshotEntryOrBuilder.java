@@ -5,7 +5,6 @@ import io.microraft.model.log.RaftGroupMembersView;
 import io.microraft.model.log.SnapshotChunk;
 import io.microraft.model.log.SnapshotEntry;
 import io.microraft.model.log.SnapshotEntry.SnapshotEntryBuilder;
-
 import javax.annotation.Nonnull;
 import java.util.List;
 

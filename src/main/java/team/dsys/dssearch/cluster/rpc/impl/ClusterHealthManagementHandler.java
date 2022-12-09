@@ -1,6 +1,12 @@
 package team.dsys.dssearch.cluster.rpc.impl;
 
-import cluster.internal.management.proto.*;
+import cluster.internal.management.proto.ManagementRequestHandlerGrpc;
+import cluster.internal.management.proto.GetRaftNodeReportRequest;
+import cluster.internal.management.proto.GetRaftNodeReportResponse;
+import cluster.internal.management.proto.AddRaftEndpointAddressRequest;
+import cluster.internal.management.proto.AddRaftEndpointAddressResponse;
+import cluster.internal.management.proto.AddRaftEndpointRequest;
+import cluster.internal.management.proto.AddRaftEndpointResponse;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -11,13 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
 import team.dsys.dssearch.cluster.rpc.RaftRpcService;
-
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.function.Supplier;
-
-import static io.microraft.MembershipChangeMode.REMOVE_MEMBER;
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.RAFT_NODE_SUPPLIER_KEY;
 import static team.dsys.dssearch.cluster.rpc.utils.Serialization.toProto;
 

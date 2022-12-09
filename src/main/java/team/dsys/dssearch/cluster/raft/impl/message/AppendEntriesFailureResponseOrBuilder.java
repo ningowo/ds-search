@@ -6,7 +6,6 @@ import io.microraft.RaftEndpoint;
 import io.microraft.model.message.AppendEntriesFailureResponse;
 import io.microraft.model.message.AppendEntriesFailureResponse.AppendEntriesFailureResponseBuilder;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 
 public class AppendEntriesFailureResponseOrBuilder

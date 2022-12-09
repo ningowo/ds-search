@@ -10,11 +10,9 @@ import io.microraft.model.message.InstallSnapshotRequest;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
 import team.dsys.dssearch.cluster.raft.impl.log.RaftGroupMembersViewOrBuilder;
 import team.dsys.dssearch.cluster.raft.impl.log.SnapshotChunkOrBuilder;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
-
 import static java.util.stream.Collectors.toList;
 
 public class InstallSnapshotRequestOrBuilder implements InstallSnapshotRequest,

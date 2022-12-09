@@ -5,7 +5,6 @@ import cluster.internal.raft.proto.RaftMessageRequest;
 import io.microraft.RaftEndpoint;
 import io.microraft.model.message.AppendEntriesSuccessResponse;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 
 public class AppendEntriesSuccessResponseOrBuilder implements AppendEntriesSuccessResponse,

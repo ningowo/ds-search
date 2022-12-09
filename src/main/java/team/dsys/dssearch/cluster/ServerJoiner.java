@@ -1,6 +1,12 @@
 package team.dsys.dssearch.cluster;
 
-import cluster.internal.management.proto.*;
+import cluster.internal.management.proto.GetRaftNodeReportResponse;
+import cluster.internal.management.proto.AddRaftEndpointAddressRequest;
+import cluster.internal.management.proto.ManagementRequestHandlerGrpc;
+import cluster.internal.management.proto.GetRaftNodeReportRequest;
+import cluster.internal.management.proto.RaftNodeReportProto;
+import cluster.internal.management.proto.RaftNodeStatusProto;
+import cluster.internal.management.proto.AddRaftEndpointRequest;
 import cluster.internal.raft.proto.RaftEndpointProto;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -11,7 +17,6 @@ import team.dsys.dssearch.cluster.config.ClusterServiceConfig;
 import team.dsys.dssearch.cluster.config.NodeEndpointConfig;
 import team.dsys.dssearch.cluster.exception.ClusterServerException;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

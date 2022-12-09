@@ -5,7 +5,6 @@ import cluster.internal.raft.proto.ClusterSnapshotChunkData;
 import io.microraft.model.log.RaftGroupMembersView;
 import io.microraft.model.log.SnapshotChunk;
 import io.microraft.model.log.SnapshotChunk.SnapshotChunkBuilder;
-
 import javax.annotation.Nonnull;
 
 public class SnapshotChunkOrBuilder implements SnapshotChunk, SnapshotChunkBuilder {

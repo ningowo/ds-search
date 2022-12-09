@@ -6,7 +6,6 @@ import io.microraft.RaftEndpoint;
 import io.microraft.model.message.VoteResponse;
 import io.microraft.model.message.VoteResponse.VoteResponseBuilder;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 
 public class VoteResponseOrBuilder implements VoteResponse, VoteResponseBuilder, RaftMessageRequestAware {

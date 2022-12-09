@@ -2,13 +2,11 @@ package team.dsys.dssearch.cluster.config;
 
 import com.typesafe.config.Config;
 import team.dsys.dssearch.cluster.exception.ClusterServerException;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;

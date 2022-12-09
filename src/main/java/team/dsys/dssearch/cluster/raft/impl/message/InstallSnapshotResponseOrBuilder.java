@@ -6,7 +6,6 @@ import io.microraft.RaftEndpoint;
 import io.microraft.model.message.InstallSnapshotResponse;
 import io.microraft.model.message.InstallSnapshotResponse.InstallSnapshotResponseBuilder;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 
 public class InstallSnapshotResponseOrBuilder

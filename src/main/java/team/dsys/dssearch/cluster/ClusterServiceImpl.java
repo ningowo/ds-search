@@ -14,13 +14,11 @@ import team.dsys.dssearch.cluster.exception.ClusterServerException;
 import team.dsys.dssearch.cluster.lifecycle.TerminationAware;
 import team.dsys.dssearch.cluster.module.ClusterServiceModule;
 import team.dsys.dssearch.cluster.raft.report.RaftNodeReportSupplier;
-
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-
 import static com.google.inject.name.Names.named;
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.RAFT_NODE_SUPPLIER_KEY;
 

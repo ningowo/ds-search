@@ -1,6 +1,12 @@
 package team.dsys.dssearch.cluster.rpc.utils;
 
-import cluster.internal.management.proto.*;
+import cluster.internal.management.proto.RaftNodeReportProto;
+import cluster.internal.management.proto.RaftNodeReportReasonProto;
+import cluster.internal.management.proto.RaftGroupMembersProto;
+import cluster.internal.management.proto.RaftRoleProto;
+import cluster.internal.management.proto.RaftNodeStatusProto;
+import cluster.internal.management.proto.RaftTermProto;
+import cluster.internal.management.proto.RaftLogStatsProto;
 import cluster.internal.raft.proto.RaftMessageRequest;
 import io.microraft.RaftNodeStatus;
 import io.microraft.RaftRole;
@@ -12,7 +18,6 @@ import io.microraft.report.RaftNodeReport.RaftNodeReportReason;
 import io.microraft.report.RaftTerm;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
 import team.dsys.dssearch.cluster.raft.impl.message.*;
-
 import javax.annotation.Nonnull;
 
 public final class Serialization {

@@ -6,11 +6,9 @@ import team.dsys.dssearch.cluster.config.ClusterServiceConfig;
 import team.dsys.dssearch.cluster.config.NodeEndpointConfig;
 import team.dsys.dssearch.cluster.exception.ClusterServerException;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 

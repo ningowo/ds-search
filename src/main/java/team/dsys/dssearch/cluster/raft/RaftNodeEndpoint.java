@@ -2,13 +2,10 @@ package team.dsys.dssearch.cluster.raft;
 
 import cluster.internal.raft.proto.RaftEndpointProto;
 import io.microraft.RaftEndpoint;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-
 
 public class RaftNodeEndpoint implements RaftEndpoint {
 

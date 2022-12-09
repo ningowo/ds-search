@@ -8,7 +8,6 @@ import io.microraft.model.log.LogEntry;
 import io.microraft.model.message.AppendEntriesRequest;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
 import team.dsys.dssearch.cluster.raft.impl.log.LogEntryOrBuilder;
-
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;

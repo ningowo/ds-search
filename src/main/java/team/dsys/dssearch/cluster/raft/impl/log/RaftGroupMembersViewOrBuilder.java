@@ -5,7 +5,6 @@ import io.microraft.RaftEndpoint;
 import io.microraft.model.log.RaftGroupMembersView;
 import io.microraft.model.log.RaftGroupMembersView.RaftGroupMembersViewBuilder;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;

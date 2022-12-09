@@ -1,9 +1,11 @@
 package team.dsys.dssearch.cluster.raft.impl.log;
 
-import cluster.internal.raft.proto.*;
+import cluster.internal.raft.proto.LogEntryProto;
+import cluster.internal.raft.proto.StartNewTermOpProto;
+import cluster.internal.raft.proto.PutOp;
+import cluster.internal.raft.proto.GetOp;
 import io.microraft.model.log.LogEntry;
 import team.dsys.dssearch.cluster.raft.impl.group.UpdateRaftGroupMembersOpOrBuilder;
-
 import javax.annotation.Nonnull;
 
 public class LogEntryOrBuilder implements LogEntry, LogEntry.LogEntryBuilder {

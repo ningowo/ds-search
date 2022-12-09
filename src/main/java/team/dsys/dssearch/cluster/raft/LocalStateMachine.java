@@ -2,19 +2,24 @@ package team.dsys.dssearch.cluster.raft;
 
 import cluster.external.shard.proto.ShardInfo;
 import cluster.external.shard.proto.ShardInfoWithDataNodeInfo;
-import cluster.internal.raft.proto.*;
+import cluster.internal.raft.proto.PutOp;
+import cluster.internal.raft.proto.GetOp;
+import cluster.internal.raft.proto.GetAllOp;
+import cluster.internal.raft.proto.StartNewTermOpProto;
+import cluster.internal.raft.proto.PutOpResult;
+import cluster.internal.raft.proto.GetOpResult;
+import cluster.internal.raft.proto.ClusterSnapshotChunkData;
+import cluster.internal.raft.proto.ShardEntry;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.microraft.RaftEndpoint;
 import io.microraft.statemachine.StateMachine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-
 import static java.util.Objects.requireNonNull;
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.NODE_ENDPOINT_KEY;
 

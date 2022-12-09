@@ -2,7 +2,6 @@ package team.dsys.dssearch.cluster.rpc;
 
 import io.microraft.RaftEndpoint;
 import io.microraft.transport.Transport;
-
 import javax.annotation.Nonnull;
 import java.util.Map;
 
