@@ -9,7 +9,6 @@ import io.microraft.RaftNode;
 import io.microraft.model.message.RaftMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -17,7 +16,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.RAFT_NODE_SUPPLIER_KEY;
 import static team.dsys.dssearch.cluster.rpc.utils.Serialization.unwrap;
 

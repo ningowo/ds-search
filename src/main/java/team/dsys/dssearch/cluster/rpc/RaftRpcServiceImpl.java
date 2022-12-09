@@ -11,7 +11,6 @@ import io.microraft.model.message.RaftMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import team.dsys.dssearch.cluster.config.ClusterServiceConfig;
-
 import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -24,7 +23,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
