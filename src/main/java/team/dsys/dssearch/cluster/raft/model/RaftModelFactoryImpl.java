@@ -22,7 +22,6 @@ import team.dsys.dssearch.cluster.raft.impl.log.RaftGroupMembersViewOrBuilder;
 import team.dsys.dssearch.cluster.raft.impl.log.SnapshotChunkOrBuilder;
 import team.dsys.dssearch.cluster.raft.impl.log.SnapshotEntryOrBuilder;
 import team.dsys.dssearch.cluster.raft.impl.message.*;
-
 import javax.annotation.Nonnull;
 import javax.inject.Singleton;
 
