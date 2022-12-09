@@ -4,11 +4,9 @@ import com.typesafe.config.ConfigFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import team.dsys.dssearch.cluster.config.ClusterServiceConfig;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-
 import static java.nio.file.Files.readAllLines;
 import static java.util.Objects.requireNonNull;
 
