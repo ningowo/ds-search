@@ -24,7 +24,6 @@ import java.util.function.Supplier;
 import static com.google.inject.name.Names.named;
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.RAFT_NODE_SUPPLIER_KEY;
 
-@Service
 public class ClusterServiceImpl implements ClusterService {
     private final ClusterServiceConfig config;
     private final RaftEndpoint nodeEndpoint;
