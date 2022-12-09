@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import team.dsys.dssearch.cluster.config.ClusterServiceConfig;
 import team.dsys.dssearch.cluster.raft.report.RaftNodeReportSupplier;
 import team.dsys.dssearch.cluster.rpc.RaftRpcService;
-
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -23,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-
 import static io.microraft.report.RaftNodeReport.RaftNodeReportReason.PERIODIC;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static team.dsys.dssearch.cluster.module.ClusterServiceModule.CONFIG_KEY;
