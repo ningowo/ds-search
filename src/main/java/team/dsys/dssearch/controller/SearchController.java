@@ -42,6 +42,7 @@ public class SearchController {
 
     @PutMapping("/store")
     SearchResponse store(@RequestBody List<DocVO> docs) throws TException {
+
         searchService.store(docs);
         return new SearchResponse(1, "ok", null);
     }

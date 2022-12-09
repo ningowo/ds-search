@@ -1,7 +1,8 @@
-package team.dsys.dssearch.shard;
+package team.dsys.dssearch.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import team.dsys.dssearch.model.Shard;
 
 import java.util.HashMap;
 

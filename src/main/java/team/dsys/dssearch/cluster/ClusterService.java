@@ -1,7 +1,5 @@
 package team.dsys.dssearch.cluster;
 
-import team.dsys.dssearch.shard.*;
-
 /**
  * cluster nodes communicates using RPC
  */
@@ -11,7 +9,7 @@ public interface ClusterService {
     Integer getNodeByShardId(long shardId);
 
     // todo
-    Shards getShardOnCurrentNode();
+//    Shards getShardOnCurrentNode();
 
 
 }

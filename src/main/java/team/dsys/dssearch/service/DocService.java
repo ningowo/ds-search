@@ -3,19 +3,16 @@ package team.dsys.dssearch.service;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
 import org.springframework.stereotype.Service;
-import team.dsys.dssearch.cluster.ClusterServiceImpl;
-import team.dsys.dssearch.routing.*;
 import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.rpc.GetResponse;
 import team.dsys.dssearch.rpc.ShardService;
-import team.dsys.dssearch.util.JsonUtil;
-import team.dsys.dssearch.util.TransportUtil;
-import team.dsys.dssearch.shard.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+/**
+ * 等于storeEngine做的事情 -> 本地存储
+ */
 
 @Slf4j
 @Service
@@ -32,32 +29,32 @@ public class DocService {
      * @param routings
      * @return
      */
-    public boolean updateConnection(List<NodeRouting> routings) {
-        for (NodeRouting routing : routings) {
-            int nodeId = routing.getNodeId();
-            String host = routing.getHost();
-            int port = routing.getPort();
-
-            boolean allSet = false;
-            int retryTimes = 0;
-            do {
-                try {
-                    // If this method return successfully, then it means the connection built.
-                    conns.put(nodeId, TransportUtil.buildShardConn(nodeId, host, port, 2000));
-                    allSet = true;
-                } catch (Exception e) {
-                    log.info(String.format("Retry connecting to %d...", nodeId));
-                    if (retryConnect(routing)) {
-                        allSet = true;
-                    }
-                }
-            } while (!allSet && retryTimes++ < RETRY_CNT);
-        }
-
-        log.info("Connection all set!");
-
-        return true;
-    }
+//    public boolean updateConnection(List<NodeRouting> routings) {
+//        for (NodeRouting routing : routings) {
+//            int nodeId = routing.getNodeId();
+//            String host = routing.getHost();
+//            int port = routing.getPort();
+//
+//            boolean allSet = false;
+//            int retryTimes = 0;
+//            do {
+//                try {
+//                    // If this method return successfully, then it means the connection built.
+//                    conns.put(nodeId, TransportUtil.buildShardConn(nodeId, host, port, 2000));
+//                    allSet = true;
+//                } catch (Exception e) {
+//                    log.info(String.format("Retry connecting to %d...", nodeId));
+//                    if (retryConnect(routing)) {
+//                        allSet = true;
+//                    }
+//                }
+//            } while (!allSet && retryTimes++ < RETRY_CNT);
+//        }
+//
+//        log.info("Connection all set!");
+//
+//        return true;
+//    }
 
     public Doc getDoc(Integer nodeId, Integer docId) {
         ShardService.Client client = conns.get(nodeId).client;
@@ -82,27 +79,17 @@ public class DocService {
         return null;
     }
 
-    public boolean store(HashMap<Integer, List<Doc>> nodeIdToDocs) throws TException {
-        // todo
-        Shards shardsOnCurrentNode = ClusterServiceImpl.getShardsOnCurrentNode();
-        boolean hasPrimary = false;
-        for (Shard shard: shardsOnCurrentNode.idToShards.values()) {
-            if (shard.isPrimary()) {
-                ShardServiceImpl shardServiceHandler = new ShardServiceImpl(new ArrayList<>(Arrays.asList(6601, 6602, 6603, 6604)));
-                shardServiceHandler.store((List)nodeIdToDocs.values());
-            }
-        }
-
-        return false;
-    }
+//    public boolean store(HashMap<Integer, List<Doc>> nodeIdToDocs) throws TException {
+//
+//    }
 
     /**
      *
      * @return true for successful connection or considered failure.
      */
-    private boolean retryConnect(NodeRouting routing) {
-        return true;
-    }
+//    private boolean retryConnect(NodeRouting routing) {
+//        return true;
+//    }
 
     public static class Connection {
 
