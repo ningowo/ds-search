@@ -1,6 +1,5 @@
 package team.dsys.dssearch.internal.common;
 
-
 import cluster.external.listener.proto.ClusterEndpointsInfo;
 import cluster.external.shard.proto.ShardResponse;
 import cluster.external.shard.proto.GetAllShardRequest;
