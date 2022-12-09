@@ -4,7 +4,13 @@ import cluster.external.listener.proto.ClusterEndpointsInfo;
 import cluster.external.listener.proto.ClusterEndpointsRequest;
 import cluster.external.listener.proto.ClusterEndpointsResponse;
 import cluster.external.listener.proto.ClusterListenServiceGrpc;
-import cluster.external.shard.proto.*;
+import cluster.external.shard.proto.ShardResponse;
+import cluster.external.shard.proto.GetAllShardRequest;
+import cluster.external.shard.proto.PutShardRequest;
+import cluster.external.shard.proto.GetShardRequest;
+import cluster.external.shard.proto.ShardRequestHandlerGrpc;
+import cluster.external.shard.proto.ShardInfo;
+import cluster.external.shard.proto.DataNodeInfo;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -17,7 +23,10 @@ import team.dsys.dssearch.internal.common.ClusterServiceManager;
 import team.dsys.dssearch.internal.common.config.ClusterServerCommonConfig;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -49,9 +58,9 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
     private class LeaderStub {
         private String leaderId;
-        private ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub;
+        private cluster.external.shard.proto.ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub;
 
-        LeaderStub(String leaderId, ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub) {
+        LeaderStub(String leaderId, cluster.external.shard.proto.ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub) {
             this.leaderId = leaderId;
             this.stub = stub;
         }
@@ -148,7 +157,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
             String updatedLeaderAddress = updatedEndpointsInfo.getEndpointsMap().get(updatedEndpointsInfo.getLeaderId());
             //build channel and stub
             ManagedChannel updatedToLeaderChannel = ManagedChannelBuilder.forTarget(updatedLeaderAddress).usePlaintext().build();
-            ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub updatedLeaderStub = ShardRequestHandlerGrpc.newFutureStub(updatedToLeaderChannel);
+            cluster.external.shard.proto.ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub updatedLeaderStub = ShardRequestHandlerGrpc.newFutureStub(updatedToLeaderChannel);
             leaderStub = new LeaderStub(updatedEndpointsInfo.getLeaderId(), updatedLeaderStub);
 
         }
@@ -161,14 +170,14 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
     }
 
     @Override
-    public ShardResponse getShardReport(GetAllShardRequest getAllShardRequest) {
+    public cluster.external.shard.proto.ShardResponse getShardReport(GetAllShardRequest getAllShardRequest) {
         ShardResponse response = callHelper((ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub)
                 -> stub.getAll(getAllShardRequest)).join();
         return response;
     }
 
     @Override
-    public ShardResponse putShardInfo(PutShardRequest request) {
+    public cluster.external.shard.proto.ShardResponse putShardInfo(cluster.external.shard.proto.PutShardRequest request) {
         ShardResponse response = callHelper((ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub)
                 -> stub.put(request)).join();
         return response;
