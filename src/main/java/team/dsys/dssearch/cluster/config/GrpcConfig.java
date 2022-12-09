@@ -2,9 +2,7 @@ package team.dsys.dssearch.cluster.config;
 
 import com.typesafe.config.Config;
 import team.dsys.dssearch.cluster.exception.ClusterServerException;
-
 import javax.annotation.Nonnull;
-
 import static java.util.Objects.requireNonNull;
 
 public class GrpcConfig {
