@@ -7,7 +7,6 @@ import io.microraft.model.groupop.UpdateRaftGroupMembersOp;
 import io.microraft.model.groupop.UpdateRaftGroupMembersOp.UpdateRaftGroupMembersOpBuilder;
 import team.dsys.dssearch.cluster.exception.ClusterServerException;
 import team.dsys.dssearch.cluster.raft.RaftNodeEndpoint;
-
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
