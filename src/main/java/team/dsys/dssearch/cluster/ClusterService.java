@@ -4,7 +4,6 @@ import io.microraft.RaftEndpoint;
 import io.microraft.RaftNode;
 import io.microraft.report.RaftNodeReport;
 import team.dsys.dssearch.cluster.config.ClusterServiceConfig;
-
 import javax.annotation.Nonnull;
 
 public interface ClusterService {
