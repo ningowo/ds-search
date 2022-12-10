@@ -24,20 +24,15 @@ public class SearchController {
     @Autowired
     SearchService searchService;
 
-    @GetMapping(value = "/search")
+    @GetMapping("/search")
     SearchResponse search(String query) {
         if (query == null) {
             return new SearchResponse(-1, "Please enter your query!", null);
         }
 
         log.info("Start searching：" + query);
-        List<Doc> searchResult = null;
-        try {
-            searchResult = searchService.search(query, 3);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
+        List<Doc>  searchResult = searchService.search(query, 1);
         return new SearchResponse(1, "ok", searchResult);
     }
 

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -52,8 +53,7 @@ public class StoreEngine {
         }
 
         // make sure shard path(Lucene path) exists
-        String shardPath = searchConfig.getIndexLibrary() + "/" + shardId + "/";
-        makeSureDirExists(shardPath);
+        String shardPath = generateShardPath(shardId);
 
         // add docs to shard(Lucene engine)
         IndexWriterConfig writerConfig = new IndexWriterConfig(analyzer);
@@ -93,8 +93,7 @@ public class StoreEngine {
      * The result docs are in same order as the given docIds.
      */
     public List<Doc> getDocList(List<Integer> sortedDocIds, int shardId) {
-        String shardPath = searchConfig.getIndexLibrary() + "/" + shardId + "/";
-        makeSureDirExists(shardPath);
+        String shardPath = generateShardPath(shardId);
 
         try (Directory directory = FSDirectory.open(Paths.get(shardPath))) {
             IndexReader reader = DirectoryReader.open(directory);
@@ -114,8 +113,7 @@ public class StoreEngine {
     }
 
     private List<ScoreDoc> queryDocByCondition(String fieldName, String term, int topNHits, int shardId)  {
-        String shardPath = searchConfig.getIndexLibrary() + "/" + shardId + "/";
-        makeSureDirExists(shardPath);
+        String shardPath = generateShardPath(shardId);
 
         try (Directory directory = FSDirectory.open(Paths.get(shardPath))) {
             IndexReader reader = DirectoryReader.open(directory);
@@ -131,8 +129,14 @@ public class StoreEngine {
             return new ArrayList<>(Arrays.asList(resultDocs.scoreDocs));
         } catch (IOException | ParseException e) {
             e.printStackTrace();
-            return null;
+            return Collections.emptyList();
         }
+    }
+
+    private String generateShardPath(int shardId) {
+        String path = String.format("%s/%s/%d/", searchConfig.getIndexLibrary(), searchConfig.getNid(), shardId);
+        makeSureDirExists(path);
+        return path;
     }
 
     private void makeSureDirExists(String dirPath) {
@@ -141,5 +145,4 @@ public class StoreEngine {
             dir.mkdir();
         }
     }
-
 }

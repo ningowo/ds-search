@@ -1,28 +1,32 @@
 package team.dsys.dssearch.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import team.dsys.dssearch.cluster.ClusterService;
+import team.dsys.dssearch.config.SearchConfig;
 import team.dsys.dssearch.rpc.*;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.FileUtil;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ShardServiceImpl implements ShardService.Iface {
 
     @Autowired
     StoreEngine storeEngine;
+
+    @Autowired
+    SearchConfig searchConfig;
 
     private static final String LOG_PATH ="./logs/";
 
@@ -64,10 +68,27 @@ public class ShardServiceImpl implements ShardService.Iface {
 
     @Override
     public List<ScoreAndDocId> queryTopN(String query, int n, int shardId) {
+        log.info("queryTopN received, query={}, n={}, shardId={}", query, n, shardId);
+        log.info("Got k docs in node {}, shard {}", searchConfig.getNid(), shardId);
+
+        List<ScoreDoc> b2 = storeEngine.queryTopN(query, 1, 2);
+        log.info("Got docs:");
+        for (ScoreDoc scoreDoc : b2) {
+            log.info("{}", scoreDoc.toString());
+        }
+
         List<ScoreDoc> scoreDocs = storeEngine.queryTopN(query, n, shardId);
-        return scoreDocs.stream()
-                .map(scoreDoc -> new ScoreAndDocId(scoreDoc.score, scoreDoc.doc))
-                .collect(Collectors.toList());
+
+        log.info("Got {} docs in node {}, shard {}", scoreDocs.size(), searchConfig.getNid(), shardId);
+
+        if (scoreDocs == null) {
+            return Collections.emptyList();
+        } else {
+            List<ScoreAndDocId> collect = scoreDocs.stream()
+                    .map(scoreDoc -> new ScoreAndDocId(scoreDoc.score, scoreDoc.doc))
+                    .collect(Collectors.toList());
+            return collect;
+        }
     }
 
     @Override

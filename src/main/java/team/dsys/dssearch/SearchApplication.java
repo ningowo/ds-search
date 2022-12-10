@@ -3,8 +3,11 @@ package team.dsys.dssearch;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.search.StoreEngine;
+import team.dsys.dssearch.server.ThriftServer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +16,9 @@ import java.util.List;
 public class SearchApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SearchApplication.class, args);
+        ApplicationContext context = SpringApplication.run(SearchApplication.class, args);
+        ThriftServer server = context.getBean(ThriftServer.class);
+        server.start();
     }
+
 }

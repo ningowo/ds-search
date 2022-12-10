@@ -44,6 +44,15 @@ public class TestController {
         log.info("write doc to shard {}: {}", 2, b2);
     }
 
+    @GetMapping("/eng/query")
+    public void testEngineStoreQuery(String query, int shardId) {
+        List<ScoreDoc> b2 = storeEngine.queryTopN(query, 1, 2);
+        log.info("Got docs:");
+        for (ScoreDoc scoreDoc : b2) {
+            log.info("{}", scoreDoc.toString());
+        }
+    }
+
     @GetMapping("/engine")
     public void test(String query, int shardId) {
         List<Doc> docsInShard1 = new ArrayList<>();
