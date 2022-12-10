@@ -75,13 +75,22 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
     }
 
     /**
+     * get nodes for all shards, so that can search all nodes for query word
+     * @return
+     */
+    public HashMap<Integer, DataNodeInfo> getAllShardIdToRandomNodeMap() {
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
+        return randomAdaptor(nodeInfos);
+    }
+
+    /**
      * pick a random node to read
      * @param shardId
      * @return
      */
-    public DataNodeInfo getRandomNodeByShardId(Integer shardId) {
+    public DataNodeInfo getRandomNode(Integer shardId) {
         List<Integer> one = new ArrayList<>(shardId);
-        HashMap<Integer, DataNodeInfo> map = getRandomNodeByShardIdList(one);
+        HashMap<Integer, DataNodeInfo> map = getShardIdToRandomNodeMap(one);
 
         return map.entrySet().iterator().next().getValue();
     }
@@ -91,9 +100,12 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @param shardIdList
      * @return
      */
-    public HashMap<Integer, DataNodeInfo> getRandomNodeByShardIdList(List<Integer> shardIdList) {
+    public HashMap<Integer, DataNodeInfo> getShardIdToRandomNodeMap(List<Integer> shardIdList) {
         List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByShardId(shardIdList);
+        return randomAdaptor(nodeInfos);
+    }
 
+    private HashMap<Integer, DataNodeInfo> randomAdaptor(List<ShardInfoWithDataNodeInfo> nodeInfos) {
         // randomly pick a node to get
         HashMap<Integer, List<DataNodeInfo>> shardIdToNodeMap = new HashMap<>();
         for (ShardInfoWithDataNodeInfo info : nodeInfos) {
@@ -142,8 +154,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @return
      */
     public HashMap<Integer, Shards> getAllShardNodeInfo() {
-        ShardResponse shardReport = getShardReport(GetAllShardRequest.newBuilder().build());
-        List<ShardInfoWithDataNodeInfo> nodeInfos = shardReport.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
 
         HashMap<Integer, Shards> shardIdToNodeMap = new HashMap<>();
         for (ShardInfoWithDataNodeInfo info : nodeInfos) {
@@ -179,6 +190,14 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .build();
         ShardResponse response = getShardInfo(req);
         return response.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+    }
+
+    /**
+     * find all shard with node info
+     */
+    private List<ShardInfoWithDataNodeInfo> searchNodeByAllShardId() {
+        ShardResponse shardReport = getShardReport(GetAllShardRequest.newBuilder().build());
+        return shardReport.getGetShardResponse().getShardInfoWithDataNodeInfoList();
     }
 
     private void prepareStub() {

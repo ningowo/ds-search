@@ -1,5 +1,6 @@
 package team.dsys.dssearch.service;
 
+import cluster.external.shard.proto.DataNodeInfo;
 import cluster.internal.management.proto.RaftNodeReportReasonProto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -11,6 +12,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import team.dsys.dssearch.ClusterServiceManagerImpl;
 import team.dsys.dssearch.config.SearchConfig;
 import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.rpc.ScoreAndDocId;
@@ -38,18 +40,19 @@ public class SearchService {
     @Autowired
     SearchConfig searchConfig;
 
+    @Autowired
+    ClusterServiceManagerImpl clusterService;
+
     SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
 
     public List<Doc> search(String query, int size) {
         // 1. search all shards for available doc ids
         List<Pair<Integer, ScoreDoc>> shardIdAndScoreDocList = new ArrayList<>();
 
-        HashMap<Integer, String> shardIdToNodeAddrMap = new HashMap<>();
-        // todo
-        shardIdToNodeAddrMap.put(1, "localhost:6001");
-        for (Map.Entry<Integer, String> entry : shardIdToNodeAddrMap.entrySet()) {
+        HashMap<Integer, DataNodeInfo> shardIdToNodeAddrMap = clusterService.getAllShardIdToRandomNodeMap();
+        for (Map.Entry<Integer, DataNodeInfo> entry : shardIdToNodeAddrMap.entrySet()) {
             int shardId = entry.getKey();
-            String nodeAddr = entry.getValue();
+            String nodeAddr = entry.getValue().getAddress();
 
             // get doc ids and scores on all shards
             ShardService.Client client = getClient(nodeAddr);
@@ -61,13 +64,7 @@ public class SearchService {
                 resultDocIds = client.queryTopN(query, size, shardId);
             } catch (TException e) {
                 log.info("Fail to search from shard {}, error {}", shardId, e.getMessage());
-//                e.printStackTrace();
                 continue;
-            }
-
-            // test
-            for (ScoreAndDocId resultDocId : resultDocIds) {
-                System.out.println(resultDocId);
             }
 
             for (ScoreAndDocId doc : resultDocIds) {
@@ -91,34 +88,30 @@ public class SearchService {
             targetSidToDocIdsMap.computeIfAbsent(shardId, k -> new ArrayList<>()).add(doc);
         }
 
-        // get docs by doc ids
+        // 3. get docs by doc ids
         List<Doc> resultDocs = new ArrayList<>();
         for (Map.Entry<Integer, List<Integer>> entry : targetSidToDocIdsMap.entrySet()) {
             int shardId = entry.getKey();
             List<Integer> docIdList = entry.getValue();
 
-            List<Doc> docList = storeEngine.getDocList(docIdList, shardId);
-//            String nodeAddr = cluster.xxx(shardId);
-            // todo
-            String nodeAddr = "localhost:6001";
+            String nodeAddr = clusterService.getRandomNode(shardId).getAddress();
             ShardService.Client client = getClient(nodeAddr);
             if (client == null) {
                 continue;
             }
             try {
-                client.getDocList(docIdList, shardId);
+                resultDocs.addAll(client.getDocList(docIdList, shardId));
             } catch (TException e) {
                 log.info("Failed to get docs from shard {}", shardId);
                 e.printStackTrace();
             }
-
-            resultDocs.addAll(docList);
         }
         if (resultDocs.size() == 0) {
-            return null;
+            log.info("Search for {} finished, no proper doc found", query);
+            return Collections.emptyList();
         }
 
-        log.info("Get docs by id:");
+        log.info("Search for {} finished, got {} docs", query, resultDocs.size());
         for (Doc doc : resultDocs) {
             log.info(doc.toString());
         }
