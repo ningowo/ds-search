@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import team.dsys.dssearch.cluster.ClusterService;
 import team.dsys.dssearch.config.SearchConfig;
+import team.dsys.dssearch.internal.common.ClusterServiceManager;
 import team.dsys.dssearch.rpc.*;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.FileUtil;
@@ -36,7 +37,7 @@ public class ShardServiceImpl implements ShardService.Iface {
     private int mainShardNum;
 
     @Autowired
-    ClusterService clusterService;
+    ClusterServiceManager clusterService;
 
     // categories doc by ids into nodes they stored, but the node ids are dynamically chosen ones(round robin)
     // key - node id, val - docs on that node
@@ -47,7 +48,8 @@ public class ShardServiceImpl implements ShardService.Iface {
 
         for (Long docId : docIds){
             long shardId = docId % mainShardNum;
-            Integer nodeID = clusterService.getNodeByShardId(shardId);
+//            Integer nodeID = clusterService.getNodeByShardId(shardId);
+            Integer nodeID = 1;
             shardToIdsMap.computeIfAbsent(nodeID, k -> new ArrayList<>()).add(docId);
         }
 
@@ -57,11 +59,11 @@ public class ShardServiceImpl implements ShardService.Iface {
     public HashMap<Integer, List<Doc>> shardDocs(List<Doc> docList) {
         HashMap<Integer, List<Doc>> shardToIdsMap = new HashMap<>();
 
-        for (Doc doc : docList){
-            long shardId = doc.getId() % mainShardNum;
-            Integer nodeID = clusterService.getNodeByShardId(shardId);
-            shardToIdsMap.computeIfAbsent(nodeID, k -> new ArrayList<>()).add(doc);
-        }
+//        for (Doc doc : docList){
+//            long shardId = doc.getId() % mainShardNum;
+//            Integer nodeID = clusterService.getNodeByShardId(shardId);
+//            shardToIdsMap.computeIfAbsent(nodeID, k -> new ArrayList<>()).add(doc);
+//        }
 
         return shardToIdsMap;
     }

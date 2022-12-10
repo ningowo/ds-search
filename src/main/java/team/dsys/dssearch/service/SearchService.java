@@ -1,6 +1,6 @@
 package team.dsys.dssearch.service;
 
-import lombok.SneakyThrows;
+import cluster.internal.management.proto.RaftNodeReportReasonProto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.ScoreDoc;

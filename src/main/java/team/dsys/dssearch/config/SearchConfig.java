@@ -7,8 +7,13 @@ import org.springframework.stereotype.Component;
 
 @Getter
 @Configuration
-@Component
 public class SearchConfig {
+
+    @Value("${search.host}")
+    String host;
+
+    @Value("${search.port}")
+    int port;
 
     // nodeId
     @Value("${search.nodeId}")

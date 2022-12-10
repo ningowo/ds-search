@@ -1,26 +1,24 @@
-package team.dsys.dssearch.internal.common.impl;
+package team.dsys.dssearch;
 
 import cluster.external.listener.proto.ClusterEndpointsInfo;
 import cluster.external.listener.proto.ClusterEndpointsRequest;
 import cluster.external.listener.proto.ClusterEndpointsResponse;
 import cluster.external.listener.proto.ClusterListenServiceGrpc;
-import cluster.external.shard.proto.ShardResponse;
-import cluster.external.shard.proto.GetAllShardRequest;
-import cluster.external.shard.proto.PutShardRequest;
-import cluster.external.shard.proto.GetShardRequest;
-import cluster.external.shard.proto.ShardRequestHandlerGrpc;
-import cluster.external.shard.proto.ShardInfo;
-import cluster.external.shard.proto.DataNodeInfo;
+import cluster.external.shard.proto.*;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import team.dsys.dssearch.config.SearchConfig;
 import team.dsys.dssearch.internal.common.ClusterServiceManager;
 import team.dsys.dssearch.internal.common.config.ClusterServerCommonConfig;
+import team.dsys.dssearch.model.Shards;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -28,29 +26,178 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Throwables.getRootCause;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+@Slf4j
+@Component
 public class ClusterServiceManagerImpl implements ClusterServiceManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClusterServiceManagerImpl.class);
 
-    private final Integer dataNodeId;
-    private final ClusterServerCommonConfig config;
+    String configFilePath = "src/main/resources/cluster.conf";
+
+    @Autowired
+    SearchConfig searchConfig;
+
+    Integer dataNodeId;
+
+    String currentNodeAddr;
+
+    volatile boolean clusterServerStubCreated = false;
+
+    private ClusterServerCommonConfig config;
     private Map<String, String> clusterServerAddress = new LinkedHashMap<>();
     private final AtomicReference<ClusterEndpointsInfo> clusterEndpointsInfoCache = new AtomicReference<>(); //update the value atomically(e.g., thread-safe)
     private volatile LeaderStub leaderStub;
     private static final long CREATE_STUB_TIME_LIMIT = SECONDS.toMillis(60);
     private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 
-//configFilePath: config automatically read annotation(spring boot)
-    public ClusterServiceManagerImpl(Integer dataNodeId, String configFilePath) throws TimeoutException {
-        this.dataNodeId = dataNodeId;
-        this.config = ClusterServerCommonConfig.getClusterCommonConfig(configFilePath);
-        this.clusterServerAddress = config.getClusterServerAddress();
-        createClusterServerStub();
+    /**
+     * send adding node message to cluster, and get complete shards info
+     * @param shardInfoList
+     * @return
+     */
+    public List<ShardInfoWithDataNodeInfo> sendShardInfoToCluster(List<ShardInfo> shardInfoList) {
+        prepareStub();
+
+        PutShardRequest req = PutShardRequest.newBuilder().
+                setDataNodeInfo(DataNodeInfo.newBuilder()
+                        .setDataNodeId(searchConfig.getNid())
+                        .setAddress(currentNodeAddr)
+                        .build())
+                .addAllShardInfo(shardInfoList).build();
+
+        ShardResponse shardResponse = putShardInfo(req);
+        return shardResponse.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+    }
+
+    /**
+     * pick a random node to read
+     * @param shardId
+     * @return
+     */
+    public DataNodeInfo getRandomNodeByShardId(Integer shardId) {
+        List<Integer> one = new ArrayList<>(shardId);
+        HashMap<Integer, DataNodeInfo> map = getRandomNodeByShardIdList(one);
+
+        return map.entrySet().iterator().next().getValue();
+    }
+
+    /**
+     * pick random nodes for shards to read. key=shardId, val=randomNode
+     * @param shardIdList
+     * @return
+     */
+    public HashMap<Integer, DataNodeInfo> getRandomNodeByShardIdList(List<Integer> shardIdList) {
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByShardId(shardIdList);
+
+        // randomly pick a node to get
+        HashMap<Integer, List<DataNodeInfo>> shardIdToNodeMap = new HashMap<>();
+        for (ShardInfoWithDataNodeInfo info : nodeInfos) {
+            int shardId = info.getShardInfo().getShardId();
+            // designed to ensure one and only one element in the list
+            DataNodeInfo nodeInfo = info.getDataNodeInfosList().get(0);
+
+            shardIdToNodeMap.computeIfAbsent(shardId, k -> new ArrayList<>()).add(nodeInfo);
+        }
+
+        HashMap<Integer, DataNodeInfo> shardIdToChosenNodeMap = new HashMap<>();
+        for (Map.Entry<Integer, List<DataNodeInfo>> entry : shardIdToNodeMap.entrySet()) {
+            int shardId = entry.getKey();
+            List<DataNodeInfo> nodeInfoList = entry.getValue();
+            int randomIndex = new Random().nextInt(nodeInfoList.size());
+
+            shardIdToChosenNodeMap.put(shardId, nodeInfoList.get(randomIndex));
+        }
+
+        return shardIdToChosenNodeMap;
+    }
+
+    /**
+     * get nodes that contains the primary key for shards
+     * @param shardIdList
+     * @return
+     */
+    public HashMap<Integer, DataNodeInfo> getNodeOfPrimaryShard(List<Integer> shardIdList) {
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByShardId(shardIdList);
+
+        // pick a node that contains primary key
+        HashMap<Integer, DataNodeInfo> shardIdToNodeMap = new HashMap<>();
+        for (ShardInfoWithDataNodeInfo info: nodeInfos) {
+            if (info.getShardInfo().getIsPrimary()) {
+                int shardId = info.getShardInfo().getShardId();
+                DataNodeInfo nodeInfo = info.getDataNodeInfos(0);
+                shardIdToNodeMap.put(shardId, nodeInfo);
+            }
+        }
+
+        return shardIdToNodeMap;
+    }
+
+    /**
+     * Get all shard to nodes info. Just in case.
+     * @return
+     */
+    public HashMap<Integer, Shards> getAllShardNodeInfo() {
+        ShardResponse shardReport = getShardReport(GetAllShardRequest.newBuilder().build());
+        List<ShardInfoWithDataNodeInfo> nodeInfos = shardReport.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+
+        HashMap<Integer, Shards> shardIdToNodeMap = new HashMap<>();
+        for (ShardInfoWithDataNodeInfo info : nodeInfos) {
+            ShardInfo shardInfo = info.getShardInfo();
+            int shardId = info.getShardInfo().getShardId();
+
+            // designed to ensure one and only one element in the list
+            DataNodeInfo nodeInfo = info.getDataNodeInfosList().get(0);
+
+            if (shardInfo.getIsPrimary()) {
+                shardIdToNodeMap
+                        .computeIfAbsent(shardId, k -> new Shards(shardId, null, new ArrayList<>()))
+                        .replicaList.add(nodeInfo);
+            }
+
+            shardIdToNodeMap
+                    .computeIfAbsent(shardId, k -> new Shards(shardId, nodeInfo, new ArrayList<>()))
+                    .setPrimary(nodeInfo);
+        }
+
+        return shardIdToNodeMap;
+    }
+
+    /**
+     *
+     * @param shardIdList
+     * @return complete shard to nodes info
+     */
+    private List<ShardInfoWithDataNodeInfo> searchNodeByShardId(List<Integer> shardIdList) {
+        GetShardRequest req = GetShardRequest.newBuilder()
+                .addAllShardId(shardIdList)
+                .setMinCommitIndex(-1L)
+                .build();
+        ShardResponse response = getShardInfo(req);
+        return response.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+    }
+
+    private void prepareStub() {
+        // current node id
+        dataNodeId = searchConfig.getNid();
+        currentNodeAddr = searchConfig.getHost() + ":" + searchConfig.getPort();
+
+        // cluster config
+        config = ClusterServerCommonConfig.getClusterCommonConfig(configFilePath);
+        clusterServerAddress = config.getClusterServerAddress();
+
+        // create stub
+        if (!clusterServerStubCreated) {
+            try {
+                createClusterServerStub();
+            } catch (TimeoutException e) {
+                log.info("Failed to create cluster server stub, msg={}", e.getMessage());
+            }
+        }
     }
 
     private class LeaderStub {
@@ -70,7 +217,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
         String randomAddress = ((String) values[new Random().nextInt(values.length)]);
         ManagedChannel randomConnectedServerChannel = ManagedChannelBuilder.forTarget(randomAddress).disableRetry().directExecutor().usePlaintext().build();
         ClusterListenServiceGrpc.ClusterListenServiceStub stub = ClusterListenServiceGrpc.newStub(randomConnectedServerChannel);
-        LOGGER.info("DataNode {} created the cluster server stub for address: {} ", dataNodeId, randomAddress);
+        log.info("DataNode {} created the cluster server stub for address: {} ", dataNodeId, randomAddress);
 
         ClusterEndpointsRequest request = ClusterEndpointsRequest.newBuilder().setClientId(dataNodeId.toString()).build();
         long startTime = System.currentTimeMillis();
@@ -80,7 +227,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
             while (clusterEndpointsInfoCache.get() == null) {
                 if (System.currentTimeMillis() - startTime > CREATE_STUB_TIME_LIMIT) {
-                    LOGGER.error("Failed to connect to server {} because of TimeOut Exception", randomAddress);
+                    log.error("Failed to connect to server {} because of TimeOut Exception", randomAddress);
                     throw new TimeoutException("Connecting to server timeout..");
                 }
 
@@ -89,12 +236,11 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
             try {
                 randomConnectedServerChannel.shutdown().awaitTermination(1, SECONDS);
             } catch (InterruptedException e) {
-                LOGGER.error("Interrupted exception during gRPC channel close", e);
+                log.error("Interrupted exception during gRPC channel close", e);
             }
         }
 
     }
-
 
     private class ClusterEndpointsResponseObserver implements StreamObserver<ClusterEndpointsResponse> {
         String address;
@@ -107,36 +253,34 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
         public void onNext(ClusterEndpointsResponse response) {
             ClusterEndpointsInfo endpointsInfo = response.getEndpointsInfo();
             try {
-                LOGGER.info("DataNode {} received response from cluster server: {}", dataNodeId, address);
+                log.info("DataNode {} received response from cluster server: {}", dataNodeId, address);
                 tryUpdateClusterEndpointsInfo(endpointsInfo);
             } catch(Exception e) {
-                LOGGER.error("Response from address: {} failed", address);
+                log.error("Response from address: {} failed", address);
             }
         }
 
         @Override
         public void onError(Throwable t) {
             System.out.println(t.getMessage());
-            LOGGER.error("For DataNode {}, Cluster Observer of {} failed. Message: ", dataNodeId, address, t.getMessage());
+            log.error("For DataNode {}, Cluster Observer of {} failed. Message: ", dataNodeId, address, t.getMessage());
 
         }
 
         @Override
         public void onCompleted() {
-            LOGGER.info("For DataNode {}, Cluster Observer of {} completed ", dataNodeId, address);
+            log.info("For DataNode {}, Cluster Observer of {} completed ", dataNodeId, address);
         }
-
-
     }
 
     private void tryUpdateClusterEndpointsInfo(ClusterEndpointsInfo updatedEndpointsInfo) {
         ClusterEndpointsInfo currentEndpointsInfo = clusterEndpointsInfoCache.get();
         if (currentEndpointsInfo == null || currentEndpointsInfo.getTerm() < updatedEndpointsInfo.getTerm()
-        || currentEndpointsInfo.getEndpointsCount() < updatedEndpointsInfo.getEndpointsCount()
-        || currentEndpointsInfo.getEndpointsCommitIndex() < updatedEndpointsInfo.getEndpointsCommitIndex()
-        || !currentEndpointsInfo.getLeaderId().equals(updatedEndpointsInfo.getLeaderId())) {
+                || currentEndpointsInfo.getEndpointsCount() < updatedEndpointsInfo.getEndpointsCount()
+                || currentEndpointsInfo.getEndpointsCommitIndex() < updatedEndpointsInfo.getEndpointsCommitIndex()
+                || !currentEndpointsInfo.getLeaderId().equals(updatedEndpointsInfo.getLeaderId())) {
 
-            LOGGER.info("DataNode {} updated cluster endpoints info... ", dataNodeId);
+            log.info("DataNode {} updated cluster endpoints info... ", dataNodeId);
             clusterEndpointsInfoCache.set(updatedEndpointsInfo);
             tryUpdateLeaderInfo(updatedEndpointsInfo);
         }
@@ -144,11 +288,9 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
         return;
     }
 
-
-
     private void tryUpdateLeaderInfo(ClusterEndpointsInfo updatedEndpointsInfo) {
         if (!isNullOrEmpty(updatedEndpointsInfo.getLeaderId()) && (leaderStub == null || !updatedEndpointsInfo.getLeaderId().equals(leaderStub.leaderId))) {
-            LOGGER.info("DataNode {} update leaderId; updated Id is: {}", dataNodeId, updatedEndpointsInfo.getLeaderId());
+            log.info("DataNode {} update leaderId; updated Id is: {}", dataNodeId, updatedEndpointsInfo.getLeaderId());
 
             //get leader address first
             String updatedLeaderAddress = updatedEndpointsInfo.getEndpointsMap().get(updatedEndpointsInfo.getLeaderId());
@@ -156,7 +298,6 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
             ManagedChannel updatedToLeaderChannel = ManagedChannelBuilder.forTarget(updatedLeaderAddress).usePlaintext().build();
             cluster.external.shard.proto.ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub updatedLeaderStub = ShardRequestHandlerGrpc.newFutureStub(updatedToLeaderChannel);
             leaderStub = new LeaderStub(updatedEndpointsInfo.getLeaderId(), updatedLeaderStub);
-
         }
     }
 
@@ -168,6 +309,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
     @Override
     public cluster.external.shard.proto.ShardResponse getShardReport(GetAllShardRequest getAllShardRequest) {
+        prepareStub();
         ShardResponse response = callHelper((ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub)
                 -> stub.getAll(getAllShardRequest)).join();
         return response;
@@ -235,69 +377,4 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
         }
     }
 
-
-
-
-
-    public static void main(String[] args) throws TimeoutException {
-        String p = "/Users/chensiying/cs61b/Distributed-Systems/Final Project/ds-search/src/main/resources/cluster.conf";
-        ClusterServiceManagerImpl manager = new ClusterServiceManagerImpl(1, p);
-        System.out.println(manager.getClusterReport());
-
-
-        List<ShardInfo> shardInfoList = new ArrayList<>();
-        shardInfoList.add(ShardInfo.newBuilder().setShardId(1).setIsPrimary(true).build());
-        shardInfoList.add(ShardInfo.newBuilder().setShardId(2).setIsPrimary(false).build());
-        shardInfoList.add(ShardInfo.newBuilder().setShardId(4).setIsPrimary(true).build());
-        shardInfoList.add(ShardInfo.newBuilder().setShardId(1).setIsPrimary(false).build());
-        PutShardRequest req = PutShardRequest.newBuilder().
-                          setDataNodeInfo(DataNodeInfo.newBuilder().setDataNodeId(1).setAddress("localhost:4001").build()).addAllShardInfo(shardInfoList).build();
-        System.out.println(manager.putShardInfo(req));
-
-        List<ShardInfo> shardInfoList2 = new ArrayList<>();
-        shardInfoList2.add(ShardInfo.newBuilder().setShardId(5).setIsPrimary(false).build());
-        shardInfoList2.add(ShardInfo.newBuilder().setShardId(3).setIsPrimary(false).build());
-        shardInfoList2.add(ShardInfo.newBuilder().setShardId(4).setIsPrimary(true).build());
-        shardInfoList2.add(ShardInfo.newBuilder().setShardId(2).setIsPrimary(false).build());
-        PutShardRequest req2 = PutShardRequest.newBuilder().
-                setDataNodeInfo(DataNodeInfo.newBuilder().setDataNodeId(2).setAddress("localhost:4002").build()).addAllShardInfo(shardInfoList2).build();
-        System.out.println(manager.putShardInfo(req2));
-
-        List<ShardInfo> shardInfoList3 = new ArrayList<>();
-        shardInfoList3.add(ShardInfo.newBuilder().setShardId(1).setIsPrimary(true).build());
-        shardInfoList3.add(ShardInfo.newBuilder().setShardId(2).setIsPrimary(false).build());
-        shardInfoList3.add(ShardInfo.newBuilder().setShardId(3).setIsPrimary(true).build());
-        shardInfoList3.add(ShardInfo.newBuilder().setShardId(5).setIsPrimary(true).build());
-        PutShardRequest req3 = PutShardRequest.newBuilder().
-                setDataNodeInfo(DataNodeInfo.newBuilder().setDataNodeId(3).setAddress("localhost:4003").build()).addAllShardInfo(shardInfoList3).build();
-        System.out.println(manager.putShardInfo(req3));
-
-//        List<Integer> shardIdList = new ArrayList<>();
-//        shardIdList.add(5);
-//        shardIdList.add(3);
-//        GetShardRequest req1 = GetShardRequest.newBuilder().addAllShardId(shardIdList).setMinCommitIndex(-1L).build();
-//        ShardResponse response = manager.getShardInfo(req1);
-//        System.out.println(response);
-
-//        for (int i = 1; i <= 5; i++) {
-//            int finalI = i;
-//            new Thread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    List<Integer> shardIdListThreadTest = new ArrayList<>();
-//                    shardIdListThreadTest.add(finalI);
-//                    GetShardRequest req1 = GetShardRequest.newBuilder().addAllShardId(shardIdListThreadTest).setMinCommitIndex(-1L).build();
-//                    ShardResponse response1 = manager.getShardInfo(req1);
-//                    System.out.println(response1);
-//                }
-//            }).start();
-//        }
-
-        System.out.println(manager.getShardReport(GetAllShardRequest.newBuilder().build()));
-
-
-
-
-
-    }
 }
