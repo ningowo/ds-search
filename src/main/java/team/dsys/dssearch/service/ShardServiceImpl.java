@@ -69,7 +69,6 @@ public class ShardServiceImpl implements ShardService.Iface {
     @Override
     public List<ScoreAndDocId> queryTopN(String query, int n, int shardId) {
         log.info("queryTopN received, query={}, n={}, shardId={}", query, n, shardId);
-        log.info("Got k docs in node {}, shard {}", searchConfig.getNid(), shardId);
 
         List<ScoreDoc> scoreDocs = storeEngine.queryTopN(query, n, shardId);
 

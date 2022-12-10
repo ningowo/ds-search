@@ -60,7 +60,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @param shardInfoList
      * @return
      */
-    public List<ShardInfoWithDataNodeInfo> sendShardInfoToCluster(List<ShardInfo> shardInfoList) {
+    public boolean sendShardInfoToCluster(List<ShardInfo> shardInfoList) {
         prepareStub();
 
         PutShardRequest req = PutShardRequest.newBuilder().
@@ -71,7 +71,8 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .addAllShardInfo(shardInfoList).build();
 
         ShardResponse shardResponse = putShardInfo(req);
-        return shardResponse.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+        // 0 - connected, -1 - error
+        return shardResponse.getCommonResponse().getStatus() == 0;
     }
 
     /**
@@ -89,8 +90,11 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @return
      */
     public DataNodeInfo getRandomNode(Integer shardId) {
+        log.info("=====shardid = {} ", shardId);
+
         List<Integer> one = new ArrayList<>(shardId);
         HashMap<Integer, DataNodeInfo> map = getShardIdToRandomNodeMap(one);
+        log.info("=====Size = {} ", map.size());
 
         return map.entrySet().iterator().next().getValue();
     }
@@ -189,6 +193,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .setMinCommitIndex(-1L)
                 .build();
         ShardResponse response = getShardInfo(req);
+        log.info("get shard to node response = {}", response);
         return response.getGetShardResponse().getShardInfoWithDataNodeInfoList();
     }
 
@@ -328,7 +333,6 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
     @Override
     public cluster.external.shard.proto.ShardResponse getShardReport(GetAllShardRequest getAllShardRequest) {
-        prepareStub();
         ShardResponse response = callHelper((ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub)
                 -> stub.getAll(getAllShardRequest)).join();
         return response;
