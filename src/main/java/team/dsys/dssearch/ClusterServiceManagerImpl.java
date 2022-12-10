@@ -60,7 +60,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @param shardInfoList
      * @return
      */
-    public List<ShardInfoWithDataNodeInfo> sendShardInfoToCluster(List<ShardInfo> shardInfoList) {
+    public boolean sendShardInfoToCluster(List<ShardInfo> shardInfoList) {
         prepareStub();
 
         PutShardRequest req = PutShardRequest.newBuilder().
@@ -71,7 +71,17 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .addAllShardInfo(shardInfoList).build();
 
         ShardResponse shardResponse = putShardInfo(req);
-        return shardResponse.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+        // 0 - connected, -1 - error
+        return shardResponse.getCommonResponse().getStatus() == 0;
+    }
+
+    /**
+     * get nodes for all shards, so that can search all nodes for query word
+     * @return
+     */
+    public HashMap<Integer, DataNodeInfo> getAllShardIdToRandomNodeMap() {
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
+        return randomAdaptor(nodeInfos);
     }
 
     /**
@@ -79,9 +89,12 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @param shardId
      * @return
      */
-    public DataNodeInfo getRandomNodeByShardId(Integer shardId) {
+    public DataNodeInfo getRandomNode(Integer shardId) {
+        log.info("=====shardid = {} ", shardId);
+
         List<Integer> one = new ArrayList<>(shardId);
-        HashMap<Integer, DataNodeInfo> map = getRandomNodeByShardIdList(one);
+        HashMap<Integer, DataNodeInfo> map = getShardIdToRandomNodeMap(one);
+        log.info("=====Size = {} ", map.size());
 
         return map.entrySet().iterator().next().getValue();
     }
@@ -91,9 +104,12 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @param shardIdList
      * @return
      */
-    public HashMap<Integer, DataNodeInfo> getRandomNodeByShardIdList(List<Integer> shardIdList) {
+    public HashMap<Integer, DataNodeInfo> getShardIdToRandomNodeMap(List<Integer> shardIdList) {
         List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByShardId(shardIdList);
+        return randomAdaptor(nodeInfos);
+    }
 
+    private HashMap<Integer, DataNodeInfo> randomAdaptor(List<ShardInfoWithDataNodeInfo> nodeInfos) {
         // randomly pick a node to get
         HashMap<Integer, List<DataNodeInfo>> shardIdToNodeMap = new HashMap<>();
         for (ShardInfoWithDataNodeInfo info : nodeInfos) {
@@ -142,8 +158,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @return
      */
     public HashMap<Integer, Shards> getAllShardNodeInfo() {
-        ShardResponse shardReport = getShardReport(GetAllShardRequest.newBuilder().build());
-        List<ShardInfoWithDataNodeInfo> nodeInfos = shardReport.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
 
         HashMap<Integer, Shards> shardIdToNodeMap = new HashMap<>();
         for (ShardInfoWithDataNodeInfo info : nodeInfos) {
@@ -178,7 +193,16 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .setMinCommitIndex(-1L)
                 .build();
         ShardResponse response = getShardInfo(req);
+        log.info("get shard to node response = {}", response);
         return response.getGetShardResponse().getShardInfoWithDataNodeInfoList();
+    }
+
+    /**
+     * find all shard with node info
+     */
+    private List<ShardInfoWithDataNodeInfo> searchNodeByAllShardId() {
+        ShardResponse shardReport = getShardReport(GetAllShardRequest.newBuilder().build());
+        return shardReport.getGetShardResponse().getShardInfoWithDataNodeInfoList();
     }
 
     private void prepareStub() {
@@ -309,7 +333,6 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
     @Override
     public cluster.external.shard.proto.ShardResponse getShardReport(GetAllShardRequest getAllShardRequest) {
-        prepareStub();
         ShardResponse response = callHelper((ShardRequestHandlerGrpc.ShardRequestHandlerFutureStub stub)
                 -> stub.getAll(getAllShardRequest)).join();
         return response;

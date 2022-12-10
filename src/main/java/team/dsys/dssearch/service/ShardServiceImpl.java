@@ -1,15 +1,14 @@
 package team.dsys.dssearch.service;
 
+import cluster.external.shard.proto.DataNodeInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
-import team.dsys.dssearch.cluster.ClusterService;
+import team.dsys.dssearch.ClusterServiceManagerImpl;
 import team.dsys.dssearch.config.SearchConfig;
-import team.dsys.dssearch.internal.common.ClusterServiceManager;
 import team.dsys.dssearch.rpc.*;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.FileUtil;
@@ -37,20 +36,19 @@ public class ShardServiceImpl implements ShardService.Iface {
     private int mainShardNum;
 
     @Autowired
-    ClusterServiceManager clusterService;
+    ClusterServiceManagerImpl clusterService;
 
     // categories doc by ids into nodes they stored, but the node ids are dynamically chosen ones(round robin)
     // key - node id, val - docs on that node
     // shard id start from 0
-    public HashMap<Integer, List<Long>> shardDocIds(List<Long> docIds) {
+    public HashMap<Integer, List<Integer>> shardDocIds(List<Integer> docIds) {
 
-        HashMap<Integer, List<Long>> shardToIdsMap = new HashMap<>();
+        HashMap<Integer, List<Integer>> shardToIdsMap = new HashMap<>();
 
-        for (Long docId : docIds){
-            long shardId = docId % mainShardNum;
-//            Integer nodeID = clusterService.getNodeByShardId(shardId);
-            Integer nodeID = 1;
-            shardToIdsMap.computeIfAbsent(nodeID, k -> new ArrayList<>()).add(docId);
+        for (Integer docId : docIds){
+            int shardId = docId % mainShardNum;
+            DataNodeInfo nodeInfo = clusterService.getRandomNode(shardId);
+            shardToIdsMap.computeIfAbsent(nodeInfo.getDataNodeId(), k -> new ArrayList<>()).add(docId);
         }
 
         return shardToIdsMap;
@@ -71,7 +69,6 @@ public class ShardServiceImpl implements ShardService.Iface {
     @Override
     public List<ScoreAndDocId> queryTopN(String query, int n, int shardId) {
         log.info("queryTopN received, query={}, n={}, shardId={}", query, n, shardId);
-        log.info("Got k docs in node {}, shard {}", searchConfig.getNid(), shardId);
 
         List<ScoreDoc> scoreDocs = storeEngine.queryTopN(query, n, shardId);
 
