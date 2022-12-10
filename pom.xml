@@ -224,8 +224,6 @@
             <version>0.17.0</version>
         </dependency>
 
-        </dependency>
-
         <dependency>
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
