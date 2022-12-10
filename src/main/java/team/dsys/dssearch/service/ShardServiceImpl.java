@@ -71,24 +71,13 @@ public class ShardServiceImpl implements ShardService.Iface {
         log.info("queryTopN received, query={}, n={}, shardId={}", query, n, shardId);
         log.info("Got k docs in node {}, shard {}", searchConfig.getNid(), shardId);
 
-        List<ScoreDoc> b2 = storeEngine.queryTopN(query, 1, 2);
-        log.info("Got docs:");
-        for (ScoreDoc scoreDoc : b2) {
-            log.info("{}", scoreDoc.toString());
-        }
-
         List<ScoreDoc> scoreDocs = storeEngine.queryTopN(query, n, shardId);
 
         log.info("Got {} docs in node {}, shard {}", scoreDocs.size(), searchConfig.getNid(), shardId);
 
-        if (scoreDocs == null) {
-            return Collections.emptyList();
-        } else {
-            List<ScoreAndDocId> collect = scoreDocs.stream()
-                    .map(scoreDoc -> new ScoreAndDocId(scoreDoc.score, scoreDoc.doc))
-                    .collect(Collectors.toList());
-            return collect;
-        }
+        return scoreDocs.stream()
+                .map(scoreDoc -> new ScoreAndDocId(scoreDoc.score, scoreDoc.doc))
+                .collect(Collectors.toList());
     }
 
     @Override

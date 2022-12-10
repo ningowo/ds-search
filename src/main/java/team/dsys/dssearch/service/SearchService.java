@@ -52,7 +52,6 @@ public class SearchService {
             String nodeAddr = entry.getValue();
 
             // get doc ids and scores on all shards
-//            List<ScoreDoc> resultDocIds = storeEngine.queryTopN(query, 2, 1);
             ShardService.Client client = getClient(nodeAddr);
             if (client == null) {
                 continue;
@@ -100,6 +99,7 @@ public class SearchService {
 
             List<Doc> docList = storeEngine.getDocList(docIdList, shardId);
 //            String nodeAddr = cluster.xxx(shardId);
+            // todo
             String nodeAddr = "localhost:6001";
             ShardService.Client client = getClient(nodeAddr);
             if (client == null) {
