@@ -1,4 +1,4 @@
-package team.dsys.dssearch.shard;
+package team.dsys.dssearch.model;
 
 public class ShardRouting {
 

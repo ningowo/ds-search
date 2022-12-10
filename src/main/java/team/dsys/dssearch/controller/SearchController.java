@@ -17,31 +17,28 @@ import java.util.List;
  */
 
 @Slf4j
-@RestController()
+@RestController
+@RequestMapping("/s")
 public class SearchController {
 
     @Autowired
     SearchService searchService;
 
-    @RequestMapping(value = "/search", method = RequestMethod.GET)
+    @GetMapping("/search")
     SearchResponse search(String query) {
         if (query == null) {
             return new SearchResponse(-1, "Please enter your query!", null);
         }
 
         log.info("Start searching：" + query);
-        List<Doc> searchResult = null;
-        try {
-            searchResult = searchService.search(query);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
+        List<Doc>  searchResult = searchService.search(query, 1);
         return new SearchResponse(1, "ok", searchResult);
     }
 
     @PutMapping("/store")
     SearchResponse store(@RequestBody List<DocVO> docs) throws TException {
+
         searchService.store(docs);
         return new SearchResponse(1, "ok", null);
     }

@@ -16,6 +16,15 @@ service ShardService {
 
     bool remove(1: Transaction trans),
 
+    list<ScoreAndDocId> queryTopN(1: string query, 2: i32 n; 3: i32 shardId),
+
+    list<Doc> getDocList(1: list<i32> sortedDocIds, 2: i32 shardId)
+
+}
+
+struct ScoreAndDocId {
+    1: double score,
+    2: i32 docId
 }
 
 struct CommonRequest {
@@ -36,8 +45,8 @@ struct CommonResponse {
 }
 
 struct Doc {
-    1: i32 _index,
-    2: i32 _id,
+    1: i32 index,
+    2: i32 id,
     3: string content
 }
 struct Transaction {
