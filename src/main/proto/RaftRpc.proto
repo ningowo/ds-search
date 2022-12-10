@@ -1,0 +1,222 @@
+syntax = "proto3";
+
+package proto;
+
+import "ShardRequest.proto";
+
+option java_package = "cluster.internal.raft.proto";
+
+option java_multiple_files = true;
+
+// This file contains the Protobufs definitions for MicroRaft's model and
+// network abstractions.
+// The proto type are according to the definition from microraft documentation and microraft internal interaction
+
+message RaftEndpointProto {
+  // Unique id of a Raft endpoint
+  string id = 1;
+}
+
+message UpdateRaftGroupMembersOpProto {
+  repeated RaftEndpointProto member = 1;
+  repeated RaftEndpointProto votingMember = 2;
+  RaftEndpointProto endpoint = 3;
+
+
+  enum MembershipChangeModeProto {
+    ADD_LEARNER = 0;
+    ADD_OR_PROMOTE_TO_FOLLOWER = 1;
+    REMOVE_MEMBER = 2;
+  }
+
+  MembershipChangeModeProto mode = 4;
+}
+
+message StartNewTermOpProto {
+}
+
+message PutOp {
+  DataNodeInfo dataNodeInfo = 1;
+  repeated ShardInfo shardInfo = 2;
+}
+
+message PutOpResult {
+  int32 status = 1; //响应码（0：success -1：error）
+  string msg = 2; //响应信息
+}
+
+message GetOp {
+  repeated int32 shardId = 1;
+  int64 minCommitIndex = 2;
+}
+
+message GetOpResult {
+  repeated ShardInfoWithDataNodeInfo shardInfoWithDataNodeInfo = 1;
+}
+
+message GetAllOp {
+
+}
+
+message LogEntryProto {
+  int32 term = 1;
+  int64 index = 2;
+  oneof operation {
+    UpdateRaftGroupMembersOpProto updateRaftGroupMembersOp = 3;
+    StartNewTermOpProto startNewTermOp = 4;
+    PutOp putOp = 5;
+    GetOp getOp = 6;
+    GetAllOp getAllOp = 7;
+  }
+}
+
+message ShardEntry {
+  ShardInfo shardInfo = 1;
+  ShardInfoWithDataNodeInfo shardInfoWithDataNodeInfo = 2;
+}
+
+//Below are referenced from Microraft internal definition
+message ClusterSnapshotChunkData {
+  repeated ShardEntry entry = 1;
+}
+
+
+message RaftGroupMembersViewProto {
+  int64 logIndex = 1;
+  repeated RaftEndpointProto member = 2;
+  repeated RaftEndpointProto votingMember = 3;
+}
+
+message ClusterSnapshotChunk {
+  int32 term = 1;
+  int64 index = 2;
+  ClusterSnapshotChunkData operation = 3;
+  int32 snapshotChunkIndex = 4;
+  int32 snapshotChunkCount = 5;
+  RaftGroupMembersViewProto groupMembersView = 6;
+}
+
+message SnapshotEntryProto {
+  int32 term = 1;
+  int64 index = 2;
+  repeated ClusterSnapshotChunk snapshotChunk = 3;
+  RaftGroupMembersViewProto groupMembersView = 4;
+}
+
+message VoteRequestProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int32 lastLogTerm = 4;
+  int64 lastLogIndex = 5;
+  bool sticky = 6;
+}
+
+message VoteResponseProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  bool granted = 4;
+}
+
+message AppendEntriesRequestProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int32 prevLogTerm = 4;
+  int64 prevLogIndex = 5;
+  int64 commitIndex = 6;
+  repeated LogEntryProto entry = 7;
+  int64 querySequenceNumber = 8;
+  int64 flowControlSequenceNumber = 9;
+}
+
+message AppendEntriesSuccessResponseProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int64 lastLogIndex = 4;
+  int64 querySequenceNumber = 5;
+  int64 flowControlSequenceNumber = 6;
+}
+
+message AppendEntriesFailureResponseProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int64 expectedNextIndex = 4;
+  int64 querySequenceNumber = 5;
+  int64 flowControlSequenceNumber = 6;
+}
+
+message InstallSnapshotRequestProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  bool senderLeader = 4;
+  int32 snapshotTerm = 5;
+  int64 snapshotIndex = 6;
+  int32 totalSnapshotChunkCount = 7;
+  ClusterSnapshotChunk snapshotChunk = 8;
+  repeated RaftEndpointProto snapshottedMember = 9;
+  RaftGroupMembersViewProto groupMembersView = 10;
+  int64 querySequenceNumber = 12;
+  int64 flowControlSequenceNumber = 13;
+}
+
+message InstallSnapshotResponseProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int64 snapshotIndex = 4;
+  int32 requestedSnapshotChunkIndex = 5;
+  int64 querySequenceNumber = 6;
+  int64 flowControlSequenceNumber = 7;
+}
+
+message PreVoteRequestProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int32 lastLogTerm = 4;
+  int64 lastLogIndex = 5;
+}
+
+message PreVoteResponseProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  bool granted = 4;
+}
+
+message TriggerLeaderElectionRequestProto {
+  string groupId = 1;
+  RaftEndpointProto sender = 2;
+  int32 term = 3;
+  int32 lastLogTerm = 4;
+  int64 lastLogIndex = 5;
+}
+
+message RaftMessageRequest {
+  oneof message {
+    VoteRequestProto voteRequest = 1;
+    VoteResponseProto voteResponse = 2;
+    AppendEntriesRequestProto appendEntriesRequest = 3;
+    AppendEntriesSuccessResponseProto appendEntriesSuccessResponse = 4;
+    AppendEntriesFailureResponseProto appendEntriesFailureResponse = 5;
+    InstallSnapshotRequestProto installSnapshotRequest = 6;
+    InstallSnapshotResponseProto installSnapshotResponse = 7;
+    PreVoteRequestProto preVoteRequest = 8;
+    PreVoteResponseProto preVoteResponse = 9;
+    TriggerLeaderElectionRequestProto triggerLeaderElectionRequest = 10;
+  }
+}
+
+message RaftMessageResponse {
+}
+
+// Service definition for the Raft communication between cluster servers.
+service RaftCommunicationService {
+  rpc handleRaftMessage (stream RaftMessageRequest) returns (RaftMessageResponse) {
+  }
+}

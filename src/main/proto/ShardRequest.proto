@@ -1,0 +1,68 @@
+
+syntax = "proto3";
+
+package proto;
+
+option java_package = "cluster.external.shard.proto";
+
+option java_multiple_files = true;
+
+message ShardInfo {
+  int32 shardId = 3;
+  bool isPrimary = 4; //primary shard: true
+}
+
+message DataNodeInfo {
+  int32 dataNodeId = 1;
+  string address = 2;
+}
+
+message PutShardRequest {
+  DataNodeInfo dataNodeInfo = 1;
+  repeated ShardInfo shardInfo = 2;//List<ShardInfo>
+}
+
+message CommonResponse {
+  int32 status = 1; //响应码（0：success -1：error）
+  string msg = 2; //响应信息
+}
+
+message GetShardRequest {
+  repeated int32 shardId = 1;
+  int64 minCommitIndex = 2;//(omit_)
+}
+
+
+message ShardInfoWithDataNodeInfo {
+  ShardInfo shardInfo = 1;
+  repeated DataNodeInfo dataNodeInfos = 2;
+}
+
+message GetShardResponse {
+  repeated ShardInfoWithDataNodeInfo shardInfoWithDataNodeInfo = 1;
+
+}
+
+message ShardResponse {
+  int64 commitIndex = 1;
+  oneof result {
+    CommonResponse commonResponse = 2;
+    GetShardResponse getShardResponse = 3;
+  };
+}
+
+message GetAllShardRequest {
+
+}
+
+
+service ShardRequestHandler {
+  rpc put (PutShardRequest) returns (ShardResponse);
+  rpc get (GetShardRequest) returns (ShardResponse);
+  rpc getAll (GetAllShardRequest) returns (ShardResponse);
+
+}
+
+
+
+
