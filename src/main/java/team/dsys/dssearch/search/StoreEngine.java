@@ -24,10 +24,7 @@ import team.dsys.dssearch.rpc.Doc;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -63,7 +60,7 @@ public class StoreEngine {
                 IndexWriter writer = new IndexWriter(directory, writerConfig)) {
             writer.addDocuments(docList);
             writer.commit();
-            log.info("Have stored {} doc(s) on shard {}, node {}", writer.numRamDocs(), shardId, searchConfig.getNid());
+            log.info("Stored {} doc(s) on shard {}, node {}", docList, shardId, searchConfig.getNid());
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -127,6 +124,8 @@ public class StoreEngine {
 
             // get searched docs ids and return
             return new ArrayList<>(Arrays.asList(resultDocs.scoreDocs));
+        } catch (IndexNotFoundException e) {
+            return Collections.emptyList();
         } catch (IOException | ParseException e) {
             e.printStackTrace();
             return Collections.emptyList();
