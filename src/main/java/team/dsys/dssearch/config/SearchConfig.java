@@ -19,6 +19,9 @@ public class SearchConfig {
     @Value("${search.nodeId}")
     private int nid;
 
+    @Value("${lucene.index}")
+    private int index;
+
     @Value("${lucene.indexLibrary}")
     private String indexLibrary;
 

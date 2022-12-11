@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.service.SearchService;
-import team.dsys.dssearch.vo.DocVO;
 import team.dsys.dssearch.vo.SearchResponse;
 
 import java.util.List;
@@ -30,14 +29,13 @@ public class SearchController {
             return new SearchResponse(-1, "Please enter your query!", null);
         }
 
-        log.info("Start searching：" + query);
+        List<Doc> searchResult = searchService.search(query, 1);
 
-        List<Doc>  searchResult = searchService.search(query, 1);
         return new SearchResponse(1, "ok", searchResult);
     }
 
     @PutMapping("/store")
-    SearchResponse store(@RequestBody List<DocVO> docs) throws TException {
+    SearchResponse store(@RequestBody List<Doc> docs) throws TException {
 
         searchService.store(docs);
         return new SearchResponse(1, "ok", null);

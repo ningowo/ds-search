@@ -123,7 +123,7 @@ public class StoreEngine {
             QueryParser queryParser = new QueryParser(fieldName, analyzer);
             Query query = queryParser.parse(term);
             TopDocs resultDocs = searcher.search(query, topNHits);
-            log.info("Search {} for {}, got {} docs!", fieldName, term, topNHits);
+            log.info("Search {} for '{}', got {} docs!", fieldName, term, topNHits);
 
             // get searched docs ids and return
             return new ArrayList<>(Arrays.asList(resultDocs.scoreDocs));

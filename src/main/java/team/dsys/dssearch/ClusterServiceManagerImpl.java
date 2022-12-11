@@ -71,6 +71,11 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .addAllShardInfo(shardInfoList).build();
 
         ShardResponse shardResponse = putShardInfo(req);
+
+//        HashMap<Integer, Shards> allShardNodeInfo = getAllShardNodeInfo();
+//        System.out.println(allShardNodeInfo);
+//        log.info("{}", shardResponse);
+
         // 0 - connected, -1 - error
         return shardResponse.getCommonResponse().getStatus() == 0;
     }
@@ -90,11 +95,9 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * @return
      */
     public DataNodeInfo getRandomNode(Integer shardId) {
-        log.info("=====shardid = {} ", shardId);
-
-        List<Integer> one = new ArrayList<>(shardId);
+        List<Integer> one = new ArrayList<>();
+        one.add(shardId);
         HashMap<Integer, DataNodeInfo> map = getShardIdToRandomNodeMap(one);
-        log.info("=====Size = {} ", map.size());
 
         return map.entrySet().iterator().next().getValue();
     }
@@ -193,7 +196,7 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .setMinCommitIndex(-1L)
                 .build();
         ShardResponse response = getShardInfo(req);
-        log.info("get shard to node response = {}", response);
+//        log.info("get shard to node response = {}", response);
         return response.getGetShardResponse().getShardInfoWithDataNodeInfoList();
     }
 

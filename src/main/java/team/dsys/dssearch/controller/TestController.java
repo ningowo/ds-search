@@ -27,9 +27,22 @@ public class TestController {
     @Autowired
     SearchService searchService;
 
+    @GetMapping("/eng/store/simple")
+    public void testEngineStoreSimple() {
+        List<String> docsContentList = new ArrayList<>();
+        docsContentList.add("there lalala 1");
+        docsContentList.add("test here, let's test");
+        docsContentList.add("Test here 11 222");
+        docsContentList.add("Test 1 2");
+
+        boolean b2 = storeEngine.writeDocList(docsContentList, 2);
+        log.info("write doc to shard {}: {}", 2, b2);
+    }
+
     @GetMapping("/eng/store")
     public void testEngineStore() {
         List<Doc> docsInShard1 = new ArrayList<>();
+
         docsInShard1.add(new Doc(1, 1, "there lalala 1"));
         docsInShard1.add(new Doc(1, 3, "test here, let's test"));
 
@@ -98,7 +111,7 @@ public class TestController {
     // localhost:8080/test/store
     @GetMapping("/store")
     SearchResponse store() throws TException {
-        List<DocVO> docs = new ArrayList<>();
+        List<Doc> docs = new ArrayList<>();
         docs.add(new DocVO(1, 1, "there lalala 1"));
         docs.add(new DocVO(1, 2, "Test here 11 222"));
         docs.add(new DocVO(1, 3, "test here, let's test"));

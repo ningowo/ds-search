@@ -1,7 +1,6 @@
 package team.dsys.dssearch.service;
 
 import cluster.external.shard.proto.DataNodeInfo;
-import cluster.internal.management.proto.RaftNodeReportReasonProto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.ScoreDoc;
@@ -19,7 +18,6 @@ import team.dsys.dssearch.rpc.ScoreAndDocId;
 import team.dsys.dssearch.rpc.ShardService;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.SnowflakeIDGenerator;
-import team.dsys.dssearch.vo.DocVO;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,6 +44,9 @@ public class SearchService {
     SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
 
     public List<Doc> search(String query, int size) {
+        log.info("================ [search start] ================");
+        log.info("[search start] Start searching：" + query);
+
         // 1. search all shards for available doc ids
         List<Pair<Integer, ScoreDoc>> shardIdAndScoreDocList = new ArrayList<>();
 
@@ -53,6 +54,7 @@ public class SearchService {
         for (Map.Entry<Integer, DataNodeInfo> entry : shardIdToNodeAddrMap.entrySet()) {
             int shardId = entry.getKey();
             String nodeAddr = entry.getValue().getAddress();
+            log.info("-- Search for shard={}, datanode={}", shardId, nodeAddr);
 
             // get doc ids and scores on all shards
             ShardService.Client client = getClient(nodeAddr);
@@ -71,6 +73,7 @@ public class SearchService {
                 Pair<Integer, ScoreDoc> pair = Pair.of(shardId, new ScoreDoc(doc.docId, (float) doc.score));
                 shardIdAndScoreDocList.add(pair);
             }
+            log.info("Got result docId(s)={}", resultDocIds);
         }
         log.info("Get total {} docs by search all nodes", shardIdAndScoreDocList.size());
 
@@ -111,10 +114,12 @@ public class SearchService {
             return Collections.emptyList();
         }
 
-        log.info("Search for {} finished, got {} docs", query, resultDocs.size());
         for (Doc doc : resultDocs) {
             log.info(doc.toString());
         }
+
+        log.info("Search for {} finished, got {} docs", query, resultDocs.size());
+        log.info("================ [search end] ================");
 
         return resultDocs;
     }
@@ -137,14 +142,9 @@ public class SearchService {
     }
 
     // first send docs to primary shards' nodes, and the primary shard will replicate logs to nodes that replicas exist.
-    public boolean store(List<DocVO> docVOLists) throws TException {
-        List<Doc> docs = docVOLists.stream().
-                map(docVO -> new Doc(docVO.index, docVO.id, docVO.content)).collect(Collectors.toList());
+    public boolean store(List<String> docContents) throws TException {
 
-        // generate global unique doc id
-        for (Doc doc : docs) {
-            doc.setId(generator.generate());
-        }
+        List<Doc> docs = buildDocListWithId(docContents);
 
         // 获取集群的状态
         // primary shard's node id
@@ -172,6 +172,18 @@ public class SearchService {
 //        }
 
         return false;
+    }
+
+    private List<Doc> buildDocListWithId(List<String> docContents) {
+        List<Doc> docs = docContents.stream().
+                map(content -> new Doc(1, -1, content)).collect(Collectors.toList());
+
+        // generate global unique doc id
+        for (Doc doc : docs) {
+            doc.setId(generator.generate());
+        }
+
+        return docs;
     }
 //
 //    // Sorted docIds
