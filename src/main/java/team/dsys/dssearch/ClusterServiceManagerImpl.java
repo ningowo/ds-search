@@ -72,10 +72,6 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
         ShardResponse shardResponse = putShardInfo(req);
 
-//        HashMap<Integer, Shards> allShardNodeInfo = getAllShardNodeInfo();
-//        System.out.println(allShardNodeInfo);
-//        log.info("{}", shardResponse);
-
         // 0 - connected, -1 - error
         return shardResponse.getCommonResponse().getStatus() == 0;
     }
@@ -84,8 +80,18 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
      * get nodes for all shards, so that can search all nodes for query word
      * @return
      */
-    public HashMap<Integer, DataNodeInfo> getAllShardIdToRandomNodeMap() {
+    public HashMap<Integer, DataNodeInfo> getRandomNodes() {
         List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
+        return randomAdaptor(nodeInfos);
+    }
+
+    /**
+     * pick random nodes for shards to read. key=shardId, val=randomNode
+     * @param shardIdList
+     * @return
+     */
+    public HashMap<Integer, DataNodeInfo> geRandomNodes(List<Integer> shardIdList) {
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByShardId(shardIdList);
         return randomAdaptor(nodeInfos);
     }
 
@@ -97,19 +103,9 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
     public DataNodeInfo getRandomNode(Integer shardId) {
         List<Integer> one = new ArrayList<>();
         one.add(shardId);
-        HashMap<Integer, DataNodeInfo> map = getShardIdToRandomNodeMap(one);
+        HashMap<Integer, DataNodeInfo> map = geRandomNodes(one);
 
         return map.entrySet().iterator().next().getValue();
-    }
-
-    /**
-     * pick random nodes for shards to read. key=shardId, val=randomNode
-     * @param shardIdList
-     * @return
-     */
-    public HashMap<Integer, DataNodeInfo> getShardIdToRandomNodeMap(List<Integer> shardIdList) {
-        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByShardId(shardIdList);
-        return randomAdaptor(nodeInfos);
     }
 
     private HashMap<Integer, DataNodeInfo> randomAdaptor(List<ShardInfoWithDataNodeInfo> nodeInfos) {
@@ -149,7 +145,36 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
             if (info.getShardInfo().getIsPrimary()) {
                 int shardId = info.getShardInfo().getShardId();
                 DataNodeInfo nodeInfo = info.getDataNodeInfos(0);
+
                 shardIdToNodeMap.put(shardId, nodeInfo);
+            }
+        }
+
+        log.info("Test primary shard, {}", shardIdToNodeMap);
+
+        return shardIdToNodeMap;
+    }
+
+    public HashMap<Integer, Shards> getTotalNodeToShardsMap () {
+        List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
+
+        HashMap<Integer, Shards> shardIdToNodeMap = new HashMap<>();
+        for (ShardInfoWithDataNodeInfo info : nodeInfos) {
+            ShardInfo shardInfo = info.getShardInfo();
+            int shardId = info.getShardInfo().getShardId();
+
+            // designed to ensure one and only one element in the list
+            DataNodeInfo nodeInfo = info.getDataNodeInfosList().get(0);
+            int nodeId = nodeInfo.getDataNodeId();
+
+            if (shardInfo.getIsPrimary()) {
+                shardIdToNodeMap
+                        .computeIfAbsent(nodeId, k -> new Shards(shardId, nodeInfo, new ArrayList<>()))
+                        .setPrimary(nodeInfo);
+            } else {
+                shardIdToNodeMap
+                        .computeIfAbsent(nodeId, k -> new Shards(shardId, null, new ArrayList<>()))
+                        .replicaList.add(nodeInfo);
             }
         }
 
@@ -157,10 +182,10 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
     }
 
     /**
-     * Get all shard to nodes info. Just in case.
+     * Get all nodes info.
      * @return
      */
-    public HashMap<Integer, Shards> getAllShardNodeInfo() {
+    public HashMap<Integer, Shards> getTotalShardIdToShardsMap() {
         List<ShardInfoWithDataNodeInfo> nodeInfos = searchNodeByAllShardId();
 
         HashMap<Integer, Shards> shardIdToNodeMap = new HashMap<>();
@@ -173,13 +198,13 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
 
             if (shardInfo.getIsPrimary()) {
                 shardIdToNodeMap
+                        .computeIfAbsent(shardId, k -> new Shards(shardId, nodeInfo, new ArrayList<>()))
+                        .setPrimary(nodeInfo);
+            } else {
+                shardIdToNodeMap
                         .computeIfAbsent(shardId, k -> new Shards(shardId, null, new ArrayList<>()))
                         .replicaList.add(nodeInfo);
             }
-
-            shardIdToNodeMap
-                    .computeIfAbsent(shardId, k -> new Shards(shardId, nodeInfo, new ArrayList<>()))
-                    .setPrimary(nodeInfo);
         }
 
         return shardIdToNodeMap;
@@ -196,7 +221,6 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
                 .setMinCommitIndex(-1L)
                 .build();
         ShardResponse response = getShardInfo(req);
-//        log.info("get shard to node response = {}", response);
         return response.getGetShardResponse().getShardInfoWithDataNodeInfoList();
     }
 

@@ -2,19 +2,9 @@ namespace java team.dsys.dssearch.rpc
 
 service ShardService {
 
-    CommonResponse commonReq(1: CommonRequest req),
+    CommonRpcResponse store(1: i32 shardId, 2: list<Doc> docs),
 
-    GetResponse get(1: i32 docId),
-
-    GetResponse batchGet(1: list<string> docIds),
-
-    CommonResponse store(1: list<Doc> docs),
-
-    bool prepare(1: Transaction trans),
-
-    bool commit(1: Transaction trans),
-
-    bool remove(1: Transaction trans),
+    CommonRpcResponse transferStoreReq(1: i32 shardId, 2: list<Doc> docs),
 
     list<ScoreAndDocId> queryTopN(1: string query, 2: i32 n; 3: i32 shardId),
 
@@ -27,30 +17,13 @@ struct ScoreAndDocId {
     2: i32 docId
 }
 
-struct CommonRequest {
-    1: i32 id,
-    2: i8 type,
-    3: string content
-}
-
-struct GetResponse {
-    1: bool success,
-    2: i32 docId,
-    3: Doc doc
-}
-
-struct CommonResponse {
-    1: bool success,
-    2: string msg
-}
-
 struct Doc {
     1: i32 index,
     2: i32 id,
     3: string content
 }
-struct Transaction {
-    1: i32 transId,
-    2: i32 key,
-    3: Doc val
+
+struct CommonRpcResponse {
+    1: bool success,
+    2: string msg
 }

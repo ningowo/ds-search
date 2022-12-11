@@ -5,9 +5,9 @@ package team.dsys.dssearch.util;
  */
 public class SnowflakeIDGenerator {
 
+    // generate global unique doc id
     public Integer generate() {
-        String s = String.valueOf(System.currentTimeMillis());
-        return (int) Long.parseLong(s) / Integer.MAX_VALUE;
+        return  (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
     }
 
 }

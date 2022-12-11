@@ -18,6 +18,7 @@ import team.dsys.dssearch.rpc.ScoreAndDocId;
 import team.dsys.dssearch.rpc.ShardService;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.util.SnowflakeIDGenerator;
+import team.dsys.dssearch.vo.DocVO;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,9 +31,6 @@ public class SearchService {
     ShardServiceImpl shardServiceHandler;
 
     @Autowired
-    DocService docService;
-
-    @Autowired
     StoreEngine storeEngine;
 
     @Autowired
@@ -41,39 +39,59 @@ public class SearchService {
     @Autowired
     ClusterServiceManagerImpl clusterService;
 
-    SnowflakeIDGenerator generator = new SnowflakeIDGenerator();
+    SnowflakeIDGenerator idGenerator = new SnowflakeIDGenerator();
 
-    public List<Doc> search(String query, int size) {
+    public List<DocVO> search(String query, int size) {
         log.info("================ [search start] ================");
         log.info("[search start] Start searching：" + query);
 
         // 1. search all shards for available doc ids
         List<Pair<Integer, ScoreDoc>> shardIdAndScoreDocList = new ArrayList<>();
 
-        HashMap<Integer, DataNodeInfo> shardIdToNodeAddrMap = clusterService.getAllShardIdToRandomNodeMap();
+        HashMap<Integer, DataNodeInfo> shardIdToNodeAddrMap = clusterService.getRandomNodes();
         for (Map.Entry<Integer, DataNodeInfo> entry : shardIdToNodeAddrMap.entrySet()) {
             int shardId = entry.getKey();
             String nodeAddr = entry.getValue().getAddress();
             log.info("-- Search for shard={}, datanode={}", shardId, nodeAddr);
 
             // get doc ids and scores on all shards
-            ShardService.Client client = getClient(nodeAddr);
-            if (client == null) {
-                continue;
-            }
-            List<ScoreAndDocId> resultDocIds = null;
-            try {
-                resultDocIds = client.queryTopN(query, size, shardId);
-            } catch (TException e) {
-                log.info("Fail to search from shard {}, error {}", shardId, e.getMessage());
-                continue;
-            }
+            if (entry.getValue().getDataNodeId() == searchConfig.getNid()) {
+                List<ScoreDoc> resultDocIds;
+                resultDocIds = storeEngine.queryTopN(query, size, shardId);
+                if (resultDocIds == null) {
+                    log.info("Got on node {}, nothing found", searchConfig.getNid());
+                    continue;
+                }
+                for (ScoreDoc doc : resultDocIds) {
+                    Pair<Integer, ScoreDoc> pair = Pair.of(shardId, new ScoreDoc(doc.doc, doc.score));
+                    shardIdAndScoreDocList.add(pair);
+                }
+                log.info("Got on node {}, result docId(s)={}", searchConfig.getNid(), resultDocIds);
+            } else {
+                ShardService.Client client = getClient(nodeAddr);
+                if (client == null) {
+                    continue;
+                }
 
-            for (ScoreAndDocId doc : resultDocIds) {
-                Pair<Integer, ScoreDoc> pair = Pair.of(shardId, new ScoreDoc(doc.docId, (float) doc.score));
-                shardIdAndScoreDocList.add(pair);
+                List<ScoreAndDocId> resultDocIds;
+                try {
+                    resultDocIds = client.queryTopN(query, size, shardId);
+                } catch (TException e) {
+                    log.info("Fail to search from shard {}, error {}", shardId, e.getMessage());
+                    e.printStackTrace();
+                    continue;
+                }
+
+                if (resultDocIds == null) {
+                    log.info("Got on node {}, nothing found", searchConfig.getNid());
+                    continue;
+                }
+                for (ScoreAndDocId doc : resultDocIds) {
+                    Pair<Integer, ScoreDoc> pair = Pair.of(shardId, new ScoreDoc(doc.docId, (float) doc.score));
+                    shardIdAndScoreDocList.add(pair);
+                }
+                log.info("Got on node {}, result docId(s)={}", searchConfig.getNid(), resultDocIds);
             }
-            log.info("Got result docId(s)={}", resultDocIds);
         }
         log.info("Get total {} docs by search all nodes", shardIdAndScoreDocList.size());
 
@@ -114,17 +132,69 @@ public class SearchService {
             return Collections.emptyList();
         }
 
-        for (Doc doc : resultDocs) {
-            log.info(doc.toString());
-        }
-
         log.info("Search for {} finished, got {} docs", query, resultDocs.size());
         log.info("================ [search end] ================");
 
-        return resultDocs;
+        return resultDocs.stream()
+                .map(doc -> new DocVO(doc.index, doc.id, doc.content))
+                .collect(Collectors.toList());
     }
 
-    private ShardService.Client getClient(String nodeAddr) {
+    public boolean storeOne(String content) {
+        List<String> contents = new ArrayList<>();
+        contents.add(content);
+        return store(contents);
+    }
+
+    public boolean store(List<String> docContents) {
+        // 1. build doc objects with docId generated
+        List<Doc> docs = buildDocListWithId(docContents);
+        log.info("docs to store={}", docs);
+
+        // 2. assign docId to shards
+        HashMap<Integer, List<Doc>> shardToDocs = assignDocIdToShards(docs);
+
+        // 3. get shard to node info
+        // key - shardId, val - nodeOfPrimaryShard
+        HashMap<Integer, DataNodeInfo> nodeOfPrimaryShard =
+                clusterService.getNodeOfPrimaryShard(new ArrayList<>(shardToDocs.keySet()));
+
+        // 4. send docs to the node that contains the primary shard of it
+        for (Map.Entry<Integer, List<Doc>> entry : shardToDocs.entrySet()) {
+            int shardId = entry.getKey();
+            List<Doc> shardDocs = entry.getValue();
+            int currentNodeId = searchConfig.getNid();
+
+            DataNodeInfo dataNodeInfo = nodeOfPrimaryShard.get(shardId);
+            int targetNodeId = dataNodeInfo.getDataNodeId();
+
+            ShardService.Client client = getClient(dataNodeInfo.getAddress());
+            try {
+                if (client == null) {
+                    continue;
+                }
+                client.transferStoreReq(shardId, shardDocs);
+            } catch (TException e) {
+                e.printStackTrace();
+                log.info("Failed to transfer store to shardId={} on nodeId={}", shardId, targetNodeId);
+            }
+        }
+
+        return true;
+    }
+
+    private List<Doc> buildDocListWithId(List<String> docContents) {
+        return docContents.stream()
+                .map(content -> new Doc(1, idGenerator.generate(), content))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * short connection
+     * @param nodeAddr
+     * @return
+     */
+    public ShardService.Client getClient(String nodeAddr) {
         String[] s = nodeAddr.split(":");
         String addr = s[0];
         int port = Integer.parseInt(s[1]);
@@ -136,63 +206,21 @@ public class SearchService {
             return new ShardService.Client(protocol);
         } catch (TTransportException e) {
             log.info("Failed to connect to addr: {}", nodeAddr);
-//            e.printStackTrace();
             return null;
         }
     }
 
-    // first send docs to primary shards' nodes, and the primary shard will replicate logs to nodes that replicas exist.
-    public boolean store(List<String> docContents) throws TException {
+    public HashMap<Integer, List<Doc>> assignDocIdToShards(List<Doc> docList) {
+        int pShardNum = searchConfig.getPrimaryShardNum();
 
-        List<Doc> docs = buildDocListWithId(docContents);
+        HashMap<Integer, List<Doc>> shardToIdsMap = new HashMap<>();
 
-        // 获取集群的状态
-        // primary shard's node id
-        //Map node to docs eg node 1 (doc 1, doc 2, doc3..)
-        // [key = node id, value = [key = shardId, value=List<Doc>>]]
-        HashMap<Integer, HashMap<Integer, List<Doc>>> nodeToDocs;
-
-//        // 1. 存本机
-//        // 如果当前节点上有doclist所需的主分片，直接存了
-//        List<Doc> docListOnCurrentNode = nodeToDocs.get(searchConfig.getNid());
-//        if (docListOnCurrentNode != null) {
-//            storeEngine.writeDocList(docListOnCurrentNode);
-//        }
-//
-//        // todo
-//        // 2. 存远程
-//        // 原来是这个 boolean store = docService.store(nodeToDocs);
-//        // 转发nodeToDocs到主分片所在节点(RPC调用)
-//        Shards shardsOnCurrentNode = ClusterServiceImpl.getShardsOnCurrentNode();
-//        boolean hasPrimary = false;
-//        for (Shard shard: shardsOnCurrentNode.idToShards.values()) {
-//            if (shard.isPrimary()) {
-//                shardServiceHandler.store(nodeToDocs);
-//            }
-//        }
-
-        return false;
-    }
-
-    private List<Doc> buildDocListWithId(List<String> docContents) {
-        List<Doc> docs = docContents.stream().
-                map(content -> new Doc(1, -1, content)).collect(Collectors.toList());
-
-        // generate global unique doc id
-        for (Doc doc : docs) {
-            doc.setId(generator.generate());
+        for (Doc doc: docList){
+            int shardId = doc.getId() % pShardNum + 1;
+            shardToIdsMap.computeIfAbsent(shardId, k -> new ArrayList<>()).add(doc);
         }
 
-        return docs;
+        return shardToIdsMap;
     }
-//
-//    // Sorted docIds
-//    private List<Doc> fetchDocs(List<Long> docIds) {
-//        HashMap<Integer, List<Long>> nodeToDocIds = shardServiceImpl.shardDocIds(docIds);
-//
-//        List<Doc> docs = docService.batchGetDocs(nodeToDocIds);
-//
-//        return docs;
-//    }
 
 }

@@ -22,7 +22,7 @@ import java.util.List;
 @Component
 public class ThriftServer {
 
-    @Value("${search.port}")
+    @Value("${search.server.port}")
     private int searchPort;
 
     @Autowired
@@ -38,7 +38,7 @@ public class ThriftServer {
         if (searchPort == 6000) {
             shardInfoList.add(ShardInfo.newBuilder().setShardId(1).setIsPrimary(true).build());
             shardInfoList.add(ShardInfo.newBuilder().setShardId(2).setIsPrimary(false).build());
-        } else {
+        } else if (searchPort == 6001){
             shardInfoList.add(ShardInfo.newBuilder().setShardId(2).setIsPrimary(true).build());
             shardInfoList.add(ShardInfo.newBuilder().setShardId(1).setIsPrimary(false).build());
         }
