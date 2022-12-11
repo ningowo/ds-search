@@ -5,14 +5,16 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import team.dsys.dssearch.ClusterServiceManagerImpl;
+import team.dsys.dssearch.model.Shards;
 import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.search.StoreEngine;
 import team.dsys.dssearch.service.SearchService;
-import team.dsys.dssearch.vo.DocVO;
 import team.dsys.dssearch.vo.SearchResponse;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,9 +29,35 @@ public class TestController {
     @Autowired
     SearchService searchService;
 
+    @Autowired
+    ClusterServiceManagerImpl serviceManager;
+
+    @GetMapping("/t")
+    public void test() {
+        HashMap<Integer, Shards> info = serviceManager.getTotalNodeToShardsMap();
+        System.out.println(info);
+
+//        ArrayList<Integer> list = new ArrayList<>();
+//        list.add(1);
+//        System.out.println(serviceManager.getNodeOfPrimaryShard(list));
+    }
+
+    @GetMapping("/eng/store/simple")
+    public void testEngineStoreSimple() {
+        List<String> docsContentList = new ArrayList<>();
+        docsContentList.add("there lalala 1");
+        docsContentList.add("test here, let's test");
+        docsContentList.add("Test here 11 222");
+        docsContentList.add("Test 1 2");
+
+//        boolean b2 = storeEngine.writeDocList(docsContentList, 2);
+//        log.info("write doc to shard {}: {}", 2, b2);
+    }
+
     @GetMapping("/eng/store")
     public void testEngineStore() {
         List<Doc> docsInShard1 = new ArrayList<>();
+
         docsInShard1.add(new Doc(1, 1, "there lalala 1"));
         docsInShard1.add(new Doc(1, 3, "test here, let's test"));
 
@@ -98,13 +126,13 @@ public class TestController {
     // localhost:8080/test/store
     @GetMapping("/store")
     SearchResponse store() throws TException {
-        List<DocVO> docs = new ArrayList<>();
-        docs.add(new DocVO(1, 1, "there lalala 1"));
-        docs.add(new DocVO(1, 2, "Test here 11 222"));
-        docs.add(new DocVO(1, 3, "test here, let's test"));
-        docs.add(new DocVO(1, 4, "Test 1 2"));
-
-        searchService.store(docs);
+        List<Doc> docs = new ArrayList<>();
+//        docs.add(new DocVO(1, 1, "there lalala 1"));
+//        docs.add(new DocVO(1, 2, "Test here 11 222"));
+//        docs.add(new DocVO(1, 3, "test here, let's test"));
+//        docs.add(new DocVO(1, 4, "Test 1 2"));
+//
+//        searchService.store(docs);
         return new SearchResponse(1, "ok", null);
     }
 }

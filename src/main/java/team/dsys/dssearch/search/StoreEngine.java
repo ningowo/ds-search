@@ -62,8 +62,8 @@ public class StoreEngine {
                 Directory directory = FSDirectory.open(Paths.get(shardPath));
                 IndexWriter writer = new IndexWriter(directory, writerConfig)) {
             writer.addDocuments(docList);
-            log.info("index {} doc(s) in RAM", writer.numRamDocs());
             writer.commit();
+            log.info("Have stored {} doc(s) on shard {}, node {}", writer.numRamDocs(), shardId, searchConfig.getNid());
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -123,7 +123,7 @@ public class StoreEngine {
             QueryParser queryParser = new QueryParser(fieldName, analyzer);
             Query query = queryParser.parse(term);
             TopDocs resultDocs = searcher.search(query, topNHits);
-            log.info("Search {} for {}, got {} docs!", fieldName, term, topNHits);
+            log.info("Search {} for '{}', got {} docs!", fieldName, term, resultDocs.scoreDocs.length);
 
             // get searched docs ids and return
             return new ArrayList<>(Arrays.asList(resultDocs.scoreDocs));

@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import team.dsys.dssearch.rpc.Doc;
 import team.dsys.dssearch.service.SearchService;
+import team.dsys.dssearch.vo.CommonResponse;
 import team.dsys.dssearch.vo.DocVO;
 import team.dsys.dssearch.vo.SearchResponse;
 
@@ -25,21 +25,32 @@ public class SearchController {
     SearchService searchService;
 
     @GetMapping("/search")
-    SearchResponse search(String query) {
+    CommonResponse<List<DocVO>> search(String query, int size) {
         if (query == null) {
-            return new SearchResponse(-1, "Please enter your query!", null);
+            return CommonResponse.createFailResult("Please enter your query!");
         }
 
-        log.info("Start searching：" + query);
+        List<DocVO> searchResult = searchService.search(query, size);
 
-        List<Doc>  searchResult = searchService.search(query, 1);
-        return new SearchResponse(1, "ok", searchResult);
+        return CommonResponse.createSuccessResult(searchResult);
     }
 
     @PutMapping("/store")
-    SearchResponse store(@RequestBody List<DocVO> docs) throws TException {
-
-        searchService.store(docs);
-        return new SearchResponse(1, "ok", null);
+    CommonResponse store(@RequestBody String content) {
+        if (searchService.storeOne(content)) {
+            return CommonResponse.createSuccessResult();
+        } else {
+            return CommonResponse.createFailResult("Failed to store.");
+        }
     }
+
+    @PutMapping("/store/list")
+    CommonResponse storeList(@RequestBody List<String> contents) {
+        if (searchService.store(contents)) {
+            return CommonResponse.createSuccessResult();
+        } else {
+            return CommonResponse.createFailResult("Failed to store.");
+        }
+    }
+
 }

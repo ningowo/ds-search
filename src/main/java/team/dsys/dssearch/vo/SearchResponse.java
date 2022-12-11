@@ -16,5 +16,5 @@ public class SearchResponse {
 
     private String msg;
 
-    private List<Doc> docList;
+    private List<DocVO> docList;
 }
