@@ -1,11 +1,19 @@
 # ds-search
 
-两条逻辑
+## How to use
 
-1. 用户CRUD -> service -> shard定位doc -> 获取doc
+1. start the main method of RunCluster.java
 
-2. 心跳包发现集群节点变动 -> 发起选举 -> 更新配置
+2. start two data node with the following config
 
-ClusterService：维护集群信息
-DocService：负责doc的存取
-ShardService：负责提供远程服务
+First:
+-  server.port=8081
+- search.server.nodeId=11
+- search.server.port=6001
+- search.server.host=localhost
+
+Second:
+- server.port=8080
+- search.nodeId=10
+- search.port=6000
+- search.host=localhost
