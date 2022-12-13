@@ -13,12 +13,11 @@ import java.util.List;
 
 /**
  * clients send requests via HTTP
- * test: http://localhost:8081/search?query=a
+ * test: http://localhost:8081/s/search?query=test&size=1
  */
 
 @Slf4j
 @RestController
-@RequestMapping("/s")
 public class SearchController {
 
     @Autowired

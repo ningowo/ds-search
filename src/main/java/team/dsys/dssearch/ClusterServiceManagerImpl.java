@@ -150,7 +150,10 @@ public class ClusterServiceManagerImpl implements ClusterServiceManager {
             }
         }
 
-        log.info("Test primary shard, {}", shardIdToNodeMap);
+        if (shardIdToNodeMap.isEmpty()) {
+            log.info("No primary shard found!");
+            return new HashMap<>();
+        }
 
         return shardIdToNodeMap;
     }
